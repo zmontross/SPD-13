@@ -1,2 +1,32 @@
 # SPD-13
-This repository contains software artifacts for a personal autonomous robot project. The name for this project comes from the short story "Runnaround" by Isaac Asimov (published March 1943).
+## Summary
+This repository contains software artifacts for a personal autonomous robot project. The name for this project comes from the short story "Runaround" by Isaac Asimov (published March 1943).
+
+## Details
+This project is an autonomous robot utilizing a cheap LIDAR scanning solution for indoor obstacle-avoidance during autonomous driving. The objective of this project is to gain familiarity with the Robotic Operating System (ROS) framework of packages ("OS" being a misnomer at this time).
+The design goals are as-follows:
+- To create a machine capable of autonomously driving around my apartment while avoiding obstacles too large to drive over.
+- To provide some way of wirelessly polling/capturing data with an external computer.
+- To allow said external computer to potentially provide computational-offload capabilities as-needed to the robot to compensate for lack of on-board processing speed/capability.
+- To allow for future growth opportunities along the lines of machine-vision analysis.
+
+The name comes from the short story "Runaround", written by Isaac Asimov and published in March 1943, which I read in high school. It was one of his first "robots" stories (which he is infamous for in Science Fiction). You can [read a description of the story on Wikipedia](https://en.wikipedia.org/wiki/Runaround_(story)), but I chose to re-use the name of the robot at the center of the plot in "Runnaround". The robot is given an initial command, but becomes stuck in a logic problem and "runs around in circles" due to a contradition in its priorities. I imagine I will be running after this machine quite a bit once I have it running around, and this name-reference seemed like it would reflect this perfectly.
+
+### Mechanical
+- For the sake of time and cost I decided to purchase a COTS robot chassis + motors as opposed to custom-fabricating them, and therefore custom brackets will be needed for properly securing components with minimal use of velcro or other crude solutions.
+- A CAD model was used to decide-upon the choice of components and their rough positioning. The website [GrabCad.com](www.grabcad.com ) was consulted for models, and a rough mock-up of the chosen chassis was found.
+- The CAD model will be used for fabricating custom brackets for various components using my 3D printers (2x Ender 3 Pro "FDM" printers using Inland-brand PLA+ of various colors).
+- The model itself is maintained and updated using Autodesk Fusion 360 which has its own internal version control system.
+### Power
+- A rough power estimation was performed using what few datapoints existed at the time for the estimated carrying capacity of the chassis, and most of the components to be used at that time (a super-set of the final purchases).
+- The power estimation projected that each motor would require roughly 600mA of current (at their rated voltage of 6VDC) to carry the estimated weight.
+- The absolute maximum stall current (per motor) was 2.3A at a stall torque of 4.5kg. This is not a figure I expect to hit as the estimated max carrying capacity of the chassis is roughly 3.5kg (which will be shared between two identical 6VDC motors).
+- I had hoped to use some existing 12VDC 2800mAH NiMH batteries, but the weight-to-power comparison with similar-volume LiPo/LiIon batteries was laughably-slanted in favor of the latter. After considering the alternative battery solutions I decided that it would be easiest to utilize a pre-made "3S1P" battery ("3-series, 1-parallel", common parlance in the RC car/boat/plane/drone communities).
+- Initially an attractive option, I decided to avoid the common 18650 LiPo battery cells that are not commonplace so as to avoid the responsibility of welding cells together, adding a battery monitoring system (BMS) to the custom pack, and other various assembly/volume/chemistry-related complications.
+- Instead I purchased a massive 5000mAH LiPo 3S1P battery rated at 35C (i.e. it can discharge at well over 5000mAH as-needed). 18650's and other small lithium batteries did not have high discharge current ratings (ranging between 0.5C and 1.5C for the most part).
+- Although this battery choice is significantly more dangerious I will not be using the battery anywhere near its "full potential". The high C-rating, internal capcity, and output voltage of 11.1V (i.e. 3.7*3) are desirable for inrush-current and fluctuating power use by motors and computers.
+### Compute & Sensing
+- A [Raspberry Pi 4 B](https://www.raspberrypi.org/products/raspberry-pi-4-model-b/specifications/) was chosen as the primary computer. The LIDAR solution will interface with it via USB, and it can return 4k-8k samples per scan depending on configurations.
+- The chosen LIDAR solution is the [Slamtec RPLidar A1M8](https://www.slamtec.com/en/Lidar/A1). It is an older and less-capable model, but at $100 it's a very attractive LIDAR solution. It's also small, and uses a pretty simple protocol. The main drawback is that the existing SDK depends on older Windows DLL's, but it has also been shown to work with ROS and Raspberry Pi's. This makes it very attractive as a starting-point for my ROS introduction.
+- For motors and miscellaneous sensors an Arduino is used. Specifically the [Pololu A-Star SV "pi hat"](https://www.pololu.com/product/3119). This saves space by directly connecting the Arduino to the Raspberry Pi through an I2C bridge without any wires (added benefit: minimal environmental noise). The Arduino will be slaved to the Raspberry Pi, and will act as a ROS node responsible for "real time" things such as motors and any future sensors I decide to include. This hat also has a built-in buzzer, voltage regulation for the battery/motors, analog input for battery-voltage-sensing, a complete breakout for the rest of the RPi GPIO and Arduino pins, and voltage-level-shifters for future devices that may need them.
+- The chosen chassis + motors was the [DFRobot "Devastator" Tank with metal DC gear motors](https://www.dfrobot.com/product-1477.html). It has a fair amount of internal space, plenty of attachment options around the chassis, and the discovery of the [rough CAD model on GrabCad](https://grabcad.com/library/dfrobot-devastator-robot-platform-1) meant that I could assess part-placement before purchasing anything.
