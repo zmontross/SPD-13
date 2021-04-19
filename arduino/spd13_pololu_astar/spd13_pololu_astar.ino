@@ -31,6 +31,10 @@
 //
 //  Miscellaneous:
 //  @   -   Toggle character echo (for debug purposes).
+//  b1  -   Run Beep 1
+//  b2  -   Run Beep 2
+//  b3  -   Run Beep 3
+//  b4  -   Run Beep 4
 
 
 /***** ***** ***** ***** ***** ***** ***** *****

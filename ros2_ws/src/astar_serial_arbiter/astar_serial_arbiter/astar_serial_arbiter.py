@@ -47,13 +47,10 @@ class Astar_Serial_Commands():
     do_beep3 = 'b3'
     do_beep4 = 'b4'
     ## TODO Expland beeps for length, duration, multiple notes, etc. (requires updating Arduino code)
-    # char report[LEN_REPORTS];
-    # const char* accelReportFormat = "ACCEL:%d:%d:%d";
-    # const char* gyroReportFormat = "GYRO:%d:%d:%d";
-    # const char* encReportFormat = "ENC:%ld:%ld";
-    # const char* motorReportFormat = "MOTOR:%c%d:%c%d";
 
-## TODO function and class documentation (heredoc stuffs)
+    MAX_BYTES = 20
+
+
 class Astar_Serial_Arbiter(Node):
 
     def __init__(self):
@@ -119,7 +116,7 @@ class Astar_Serial_Arbiter(Node):
         self.add_on_set_parameters_callback(self.parameters_callback)
 
 
-    ## TODO function and class documentation (heredoc stuffs)
+    
     def publish_all_callback(self):
 
         # Accelerometer
@@ -157,35 +154,27 @@ class Astar_Serial_Arbiter(Node):
         self.get_logger().info('Publishing Motor Power, R[{}] L[{}]'.format(motor_right_msg.data, motor_left_msg.data))
 
 
-    ## TODO function and class documentation (heredoc stuffs)
-    ### https://roboticsbackend.com/ros2-rclpy-parameter-callback/
     def parameters_callback(self, params):
-        
+        # Reference, https://roboticsbackend.com/ros2-rclpy-parameter-callback/
         success = False
-
         for param in params:
             if param.name == 'data_publish_period':
                 self.data_publish_period = param.value
                 self.timer_publish_all.timer_period_ns = float(self.data_publish_period)*1000000000.0
                 success = True
-            
         return SetParametersResult(successful=success)
 
-
-    ## TODO function and class documentation (heredoc stuffs)
     def set_motor_power_right_callback(self, message):
         self.requested_motor_power_right = int(message.data)
         self.get_logger().info('Subscription rx, Right Motor Power, %d' % self.requested_motor_power_right)
         self.update_motor_power_right = True
     
-    ## TODO function and class documentation (heredoc stuffs)
     def set_motor_power_left_callback(self, message):
         self.requested_motor_power_left = int(message.data)
         self.get_logger().info('Subscription rx, Left Motor Power, %d' % self.requested_motor_power_left)
         self.update_motor_power_left = True
 
 
-    ## TODO function and class documentation (heredoc stuffs)
     def serial_send(self, tx):
         # Clear buffers
         self.serial_port.reset_input_buffer()
@@ -195,8 +184,7 @@ class Astar_Serial_Arbiter(Node):
         self.serial_port.write(bytes(tx + self.serial_terminator, 'utf-8'))
 
         # Grab raw bytes up to the pre-agreed terminator.
-        ## TODO Parameterize or otherwise relocate the max size value
-        rx = self.serial_port.read_until(bytes(self.serial_terminator, 'utf-8'), 20)
+        rx = self.serial_port.read_until(bytes(self.serial_terminator, 'utf-8'), Astar_Serial_Commands.MAX_BYTES)
 
         # Convert bytes to string, remove expected terminator.
         rx = rx.decode('utf-8').strip(self.serial_terminator)
