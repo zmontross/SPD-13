@@ -27,7 +27,7 @@ from std_msgs.msg import String, Int16, Int32
 
 
 ## TODO function and class documentation (heredoc stuffs)
-class Astar_Serial_Commands():
+class SerialCommands():
     # Pololu Astar Arduino Commands
     # Queries
     query_accelerometer = 'qa'
@@ -51,10 +51,10 @@ class Astar_Serial_Commands():
     MAX_BYTES = 20
 
 
-class Astar_Serial_Arbiter(Node):
+class SerialArbiter(Node):
 
     def __init__(self):
-        super().__init__('Astar_Serial_Arbiter')
+        super().__init__('SerialArbiter')
 
         # Declare Parameters and default values
         self.declare_parameter('serial_port_path', '/dev/ttyACM0')
@@ -111,7 +111,7 @@ class Astar_Serial_Arbiter(Node):
         ## TODO wrap with try/catch, log initial serial connection error
         self.serial_port = serial.Serial(self.serial_port_path, self.serial_baud_rate, timeout=2)
         
-        self.timer_publish_all = self.create_timer(self.data_publish_period, self.publish_all_callback)
+        self.timer_publish_all = self.create_timer(self.data_publish_period, self.publish_all_callback)     # analgous to rclcpp::Node::create_wall_timer()
 
         self.add_on_set_parameters_callback(self.parameters_callback)
 
@@ -184,7 +184,7 @@ class Astar_Serial_Arbiter(Node):
         self.serial_port.write(bytes(tx + self.serial_terminator, 'utf-8'))
 
         # Grab raw bytes up to the pre-agreed terminator.
-        rx = self.serial_port.read_until(bytes(self.serial_terminator, 'utf-8'), Astar_Serial_Commands.MAX_BYTES)
+        rx = self.serial_port.read_until(bytes(self.serial_terminator, 'utf-8'), SerialCommands.MAX_BYTES)
 
         # Convert bytes to string, remove expected terminator.
         rx = rx.decode('utf-8').strip(self.serial_terminator)
@@ -195,19 +195,19 @@ class Astar_Serial_Arbiter(Node):
 def main(args=None):
     rclpy.init(args=args)
 
-    arbiter = Astar_Serial_Arbiter()
+    arbiter = SerialArbiter()
 
-    arbiter.serial_send(Astar_Serial_Commands.do_beep4) # Beep to alert, notify of running state
+    arbiter.serial_send(SerialCommands.do_beep4) # Beep to alert, notify of running state
 
     while rclpy.ok():
         # Process callbacks/etc.
         rclpy.spin_once(arbiter, timeout_sec=0.01)  # Timeout req. to decouple loop from publish freq., nonzero to help subs.
 
         # Poll data from serial, store responses.
-        arbiter.serial_rx_qa =  arbiter.serial_send(Astar_Serial_Commands.query_accelerometer)
-        arbiter.serial_rx_qg =  arbiter.serial_send(Astar_Serial_Commands.query_gyroscope)
-        arbiter.serial_rx_qe =  arbiter.serial_send(Astar_Serial_Commands.query_encoders)
-        arbiter.serial_rx_qm =  arbiter.serial_send(Astar_Serial_Commands.query_motors)
+        arbiter.serial_rx_qa =  arbiter.serial_send(SerialCommands.query_accelerometer)
+        arbiter.serial_rx_qg =  arbiter.serial_send(SerialCommands.query_gyroscope)
+        arbiter.serial_rx_qe =  arbiter.serial_send(SerialCommands.query_encoders)
+        arbiter.serial_rx_qm =  arbiter.serial_send(SerialCommands.query_motors)
 
         # Update motor speeds if requested by subscriptions.
         if arbiter.update_motor_power_right:

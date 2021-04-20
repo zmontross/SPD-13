@@ -1,9 +1,9 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>astar_serial_arbiter</name>
+  <name>spd_13</name>
   <version>0.0.0</version>
-  <description>ROS2 Node which interfaces directly with a Pololu AStar 32u4 Pi Hat running custom Arduino code.</description>
+  <description>ROS2 package for the SPD-13 robot containing all related nodes.</description>
   <maintainer email="spectre@todo.todo">spectre</maintainer>
   <license>WTFPL</license>
 

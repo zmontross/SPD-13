@@ -1,3 +1,3 @@
-astar_serial_arbiter:
+serial_arbiter:
   ros__parameters:
     

@@ -1,6 +1,6 @@
 from setuptools import setup
 
-package_name = 'astar_serial_arbiter'
+package_name = 'spd_13'
 
 setup(
     name=package_name,
@@ -15,12 +15,12 @@ setup(
     zip_safe=True,
     maintainer='spectre',
     maintainer_email='spectre@todo.todo',
-    description='ROS2 Node which interfaces directly with a Pololu AStar 32u4 Pi Hat running custom Arduino code.',
+    description='ROS2 package for the SPD-13 robot containing all related nodes.',
     license='WTFPL',
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'astar_serial_arbiter = astar_serial_arbiter.astar_serial_arbiter:main'
+            'serial_arbiter = spd_13.serial_arbiter:main'
         ],
     },
 )
