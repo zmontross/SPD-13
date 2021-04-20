@@ -3,10 +3,6 @@
 
 import serial
 
-import queue
-
-from time import sleep
-
 import rclpy
 from rclpy.node import Node
 from rclpy.exceptions import ParameterNotDeclaredException
@@ -124,14 +120,14 @@ class SerialArbiter(Node):
         _, ax, ay, az = self.serial_rx_qa.split(':')
         accel_msg.data = "x={}|y={}|z={}".format(ax, ay, az)
         self.publisher_accel.publish(accel_msg)
-        self.get_logger().info('Publishing Acceleration, %s' % accel_msg.data)
+        self.get_logger().debug('Publishing Acceleration, %s' % accel_msg.data)
 
         # Gyroscope
         gyro_msg = String()
         _, gx, gy, gz = self.serial_rx_qg.split(':')
         gyro_msg.data = "x={}|y={}|z={}".format(gx, gy, gz)
         self.publisher_accel.publish(gyro_msg)
-        self.get_logger().info('Publishing Gyroscope, %s' % gyro_msg.data)
+        self.get_logger().debug('Publishing Gyroscope, %s' % gyro_msg.data)
 
         # Encoders
         enc_right_msg = Int32()
@@ -141,7 +137,7 @@ class SerialArbiter(Node):
         enc_left_msg.data = int(enc_left_msg_temp)
         self.publisher_enc_right.publish(enc_right_msg)
         self.publisher_enc_left.publish(enc_left_msg)
-        self.get_logger().info('Publishing Encoders, R[{}] L[{}]'.format(enc_right_msg.data, enc_left_msg.data))
+        self.get_logger().debug('Publishing Encoders, R[{}] L[{}]'.format(enc_right_msg.data, enc_left_msg.data))
 
         # Motors
         motor_right_msg = Int16()
@@ -151,7 +147,7 @@ class SerialArbiter(Node):
         motor_left_msg.data = int(motor_left_msg_temp)
         self.publisher_motor_right.publish(motor_right_msg)
         self.publisher_motor_left.publish(motor_left_msg)
-        self.get_logger().info('Publishing Motor Power, R[{}] L[{}]'.format(motor_right_msg.data, motor_left_msg.data))
+        self.get_logger().debug('Publishing Motor Power, R[{}] L[{}]'.format(motor_right_msg.data, motor_left_msg.data))
 
 
     def parameters_callback(self, params):
@@ -160,18 +156,18 @@ class SerialArbiter(Node):
         for param in params:
             if param.name == 'data_publish_period':
                 self.data_publish_period = param.value
-                self.timer_publish_all.timer_period_ns = float(self.data_publish_period)*1000000000.0
+                self.timer_publish_all.timer_period_ns = float(self.data_publish_period)*1000000000.0   # Seconds-to-Nanoseconds
                 success = True
         return SetParametersResult(successful=success)
 
     def set_motor_power_right_callback(self, message):
         self.requested_motor_power_right = int(message.data)
-        self.get_logger().info('Subscription rx, Right Motor Power, %d' % self.requested_motor_power_right)
+        self.get_logger().debug('Subscription rx, Right Motor Power, %d' % self.requested_motor_power_right)
         self.update_motor_power_right = True
     
     def set_motor_power_left_callback(self, message):
         self.requested_motor_power_left = int(message.data)
-        self.get_logger().info('Subscription rx, Left Motor Power, %d' % self.requested_motor_power_left)
+        self.get_logger().debug('Subscription rx, Left Motor Power, %d' % self.requested_motor_power_left)
         self.update_motor_power_left = True
 
 
@@ -199,25 +195,29 @@ def main(args=None):
 
     arbiter.serial_send(SerialCommands.do_beep4) # Beep to alert, notify of running state
 
-    while rclpy.ok():
-        # Process callbacks/etc.
-        rclpy.spin_once(arbiter, timeout_sec=0.01)  # Timeout req. to decouple loop from publish freq., nonzero to help subs.
+    try:
+        while rclpy.ok():
+            # Process callbacks/etc.
+            rclpy.spin_once(arbiter, timeout_sec=0.01)  # Timeout req. to decouple loop from publish freq., nonzero to help subs.
 
-        # Poll data from serial, store responses.
-        arbiter.serial_rx_qa =  arbiter.serial_send(SerialCommands.query_accelerometer)
-        arbiter.serial_rx_qg =  arbiter.serial_send(SerialCommands.query_gyroscope)
-        arbiter.serial_rx_qe =  arbiter.serial_send(SerialCommands.query_encoders)
-        arbiter.serial_rx_qm =  arbiter.serial_send(SerialCommands.query_motors)
+            # Poll data from serial, store responses.
+            arbiter.serial_rx_qa =  arbiter.serial_send(SerialCommands.query_accelerometer)
+            arbiter.serial_rx_qg =  arbiter.serial_send(SerialCommands.query_gyroscope)
+            arbiter.serial_rx_qe =  arbiter.serial_send(SerialCommands.query_encoders)
+            arbiter.serial_rx_qm =  arbiter.serial_send(SerialCommands.query_motors)
 
-        # Update motor speeds if requested by subscriptions.
-        if arbiter.update_motor_power_right:
-            arbiter.update_motor_power_right = False
-            arbiter.serial_send("sm1 %d" % arbiter.requested_motor_power_right)
+            # Update motor speeds if requested by subscriptions.
+            if arbiter.update_motor_power_right:
+                arbiter.update_motor_power_right = False
+                arbiter.serial_send("sm1 %d" % arbiter.requested_motor_power_right)
 
-        if arbiter.update_motor_power_left:
-            arbiter.update_motor_power_left = False
-            arbiter.serial_send("sm2 %d" % arbiter.requested_motor_power_left)
+            if arbiter.update_motor_power_left:
+                arbiter.update_motor_power_left = False
+                arbiter.serial_send("sm2 %d" % arbiter.requested_motor_power_left)
 
+    except KeyboardInterrupt:
+        self.get_logger().info('Keyboard interrupt exception was caught. Shutting down.')
+        pass
 
     # Explicitly destroy node
     arbiter.destroy_node()
