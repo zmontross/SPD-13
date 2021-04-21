@@ -20,7 +20,8 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'serial_arbiter = spd_13.serial_arbiter:main'
+            'serial_arbiter = spd_13.serial_arbiter:main',
+            'differential_odometry = spd_13.differential_odometry:main'
         ],
     },
 )

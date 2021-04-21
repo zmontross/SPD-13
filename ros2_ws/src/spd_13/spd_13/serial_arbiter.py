@@ -57,7 +57,7 @@ class SerialArbiter(Node):
         self.declare_parameter('serial_baud_rate', '115200')
         self.declare_parameter('serial_terminator_char', '\r')
 
-        self.declare_parameter('data_publish_period', '0.5')
+        self.declare_parameter('data_publish_period', '0.01')
 
 
         # Store parameter values and log them to file
