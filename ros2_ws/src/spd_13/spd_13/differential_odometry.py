@@ -9,6 +9,7 @@ from math import sin, cos, pi
 import rclpy
 
 from rclpy.node import Node
+from rclpy.clock import ClockType
 from rclpy.exceptions import ParameterNotDeclaredException
 from rcl_interfaces.msg import ParameterType, SetParametersResult
 
@@ -20,7 +21,7 @@ from geometry_msgs.msg import Quaternion
 from geometry_msgs.msg import Twist
 from geometry_msgs.msg import TransformStamped
 from std_msgs.msg import Int32
-from std_msgs.msg import Float32
+from std_msgs.msg import Float32, Float64
 
 from rclpy.time import Time
 
@@ -67,28 +68,38 @@ class DifferentialOdometry(Node):
         self.base_frame_id = self.get_parameter('base_frame_id').value
         self.odom_frame_id = self.get_parameter('odom_frame_id').value
 
+        self.get_logger().info("Encoder count minimum: {}".format(self.encoder_count_minimum))
+        self.get_logger().info("Encoder count maximum: {}".format(self.encoder_count_maximum))
+        self.get_logger().info("Encoder counts per rev: {}".format(self.encoder_counts_per_rev))
+        self.get_logger().info("Wheel diameter (m): {}".format(self.wheel_diameter_meters))
+        self.get_logger().info("Wheel separation (m): {}".format(self.wheel_separation_meters))
+        self.get_logger().info("Base frame ID: {}".format(self.base_frame_id))
+        self.get_logger().info("Odom frame ID: {}".format(self.odom_frame_id))
+        
+
         # Compute miscellanous information
         self.encoder_counts_per_meter = self.encoder_counts_per_rev / (self.wheel_diameter_meters * pi)
         
         # Instance variables
         self.update_frequency = 100 # Hz
         self.update_dt = 1 / self.update_frequency
-        self.update_tlast = Time(nanoseconds=self.get_clock().now().nanoseconds)
+        self.update_tlast = self.get_clock().now()
 
-        self.encoder_left = None
+
+        self.encoder_left = 0
         self.encoder_left_last = 0
         # self.encoder_wrap_multiplier_left = 0 # Default encoders shouldn't wrap for 250km
 
-        self.encoder_right = None
+        self.encoder_right = 0
         self.encoder_right_last = 0
         # self.encoder_wrap_multiplier_right = 0 # Default encoders shouldn't wrap for 250km
 
-        self.position_x = 0 # X-coord in XY plane
-        self.position_y = 0 # Y-coord in XY plane
-        self.position_theta = 0 # Theta angle in XY plane
+        self.position_x = 0.0 # X-coord in XY plane
+        self.position_y = 0.0 # Y-coord in XY plane
+        self.position_theta = 0.0 # Theta angle in XY plane
 
-        self.velocity_linear = 0 # meters per second
-        self.velocity_angular = 0 # radians per second
+        self.velocity_linear = 0.0 # meters per second
+        self.velocity_angular = 0.0 # radians per second
 
 
         # Create publishers, subscribers, timers
@@ -102,6 +113,8 @@ class DifferentialOdometry(Node):
         self.subscriber_encoder_left = self.create_subscription(Int32, 'encoder_left', self.encoder_left_callback, 10)
         
         self.update_timer = self.create_timer(self.update_dt, self.update_callback)
+
+        self.get_logger().info("Differential Odometry node initialized!")
 
 
     # def joint_state_callback(self):
@@ -124,13 +137,13 @@ class DifferentialOdometry(Node):
         self.update_tlast = current_time
 
         # Calculate Odometry
-        if self.encoder_left == None:
-            distance_left_meters = 0
+        if self.encoder_left == 0:
+            distance_left_meters = 0.0
         else:
             distance_left_meters = (self.encoder_left - self.encoder_left_last) / self.encoder_counts_per_meter
 
-        if self.encoder_right == None:
-            distance_right_meters = 0
+        if self.encoder_right == 0:
+            distance_right_meters = 0.0
         else:
             distance_right_meters = (self.encoder_right - self.encoder_right_last) / self.encoder_counts_per_meter
 
@@ -142,9 +155,12 @@ class DifferentialOdometry(Node):
 
         theta = (distance_right_meters - distance_left_meters) / self.wheel_separation_meters # "this approximation works (in radians) for small angles" TODO double-check this estimation
 
-        self.velocity_linear = distance_average / dt.to_msg().sec
-
-        self.velocity_angular = theta / dt.to_msg().sec
+        if dt.to_msg().sec == 0:
+            self.velocity_linear = 0.0
+            self.velocity_angular = 0.0
+        else:
+            self.velocity_linear = distance_average / dt.to_msg().sec
+            self.velocity_angular = theta / dt.to_msg().sec
 
 
         if distance_average != 0:
@@ -185,20 +201,18 @@ class DifferentialOdometry(Node):
         # )
 
         odom = Odometry()
-        odom.header.stamp = current_time
+        odom.header.stamp = current_time.to_msg()
         odom.header.frame_id = self.odom_frame_id
         odom.pose.pose.position.x = self.position_x
         odom.pose.pose.position.y = self.position_y
-        odom.pose.pose.position.z = 0
+        odom.pose.pose.position.z = 0.0
         odom.pose.pose.orientation = q
         odom.child_frame_id = self.base_frame_id
         odom.twist.twist.linear.x = self.velocity_linear
-        odom.twist.twist.linear.y = 0
+        odom.twist.twist.linear.y = 0.0
         odom.twist.twist.angular.z = self.velocity_angular
 
         self.publisher_odom.publish(odom)
-
-
 
 def main(args=None):
     rclpy.init(args=args)
