@@ -1,0 +1,6 @@
+build/
+install/
+log/
+*.tar
+__pycache__/
+

@@ -21,6 +21,7 @@ setup(
     entry_points={
         'console_scripts': [
             'serial_arbiter = spd_13.serial_arbiter:main',
+            'serial_arbiter_sim = spd_13.serial_arbiter_sim:main',
             'differential_odometry = spd_13.differential_odometry:main'
         ],
     },
