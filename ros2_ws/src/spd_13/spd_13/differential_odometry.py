@@ -114,7 +114,7 @@ class DifferentialOdometry(Node):
         
         self.update_timer = self.create_timer(self.update_dt, self.update_callback)
 
-        self.get_logger().info("Differential Odometry node initialized!")
+        self.get_logger().info('Differential Odometry node initialized!')
 
 
     # def joint_state_callback(self):
@@ -182,15 +182,15 @@ class DifferentialOdometry(Node):
         q.y = 0.0
         q.z = sin(self.position_theta / 2) # TODO Learning: Review why these angles are halved; Quaternion phenomena, not ROS-specific
         q.w = cos(self.position_theta / 2)
-        # t = TransformStamped()
-        # t.header.stamp = current_time
-        # t.header.frame_id = self.odom_frame_id
-        # t.child_frame_id = self.base_frame_id
-        # t.transform.translation.x = self.position_x
-        # t.transform.translation.y = self.position_y
-        # t.transform.translation.z = 0.0
-        # t.transform.rotation = q
-        # self.transform_broadcaster.sendTransform(t)
+        t = TransformStamped()
+        t.header.stamp = current_time.to_msg()
+        t.header.frame_id = self.odom_frame_id
+        t.child_frame_id = self.base_frame_id
+        t.transform.translation.x = self.position_x
+        t.transform.translation.y = self.position_y
+        t.transform.translation.z = 0.0
+        t.transform.rotation = q
+        self.transform_broadcaster.sendTransform(t)
 
         # self.transform_broadcaster.sendTransform(    
         #     (self.position_x, self.position_y, 0),
