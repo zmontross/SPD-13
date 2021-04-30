@@ -195,6 +195,9 @@ def main(args=None):
 
     arbiter.serial_send(SerialCommands.do_beep4) # Beep to alert, notify of running state
 
+    #TODO Add serial-prepping function, a delay or something, to counteract occasional crashes caused by getting bad feedback.
+    #TODO encapsulate publish logic with try/except
+
     try:
         while rclpy.ok():
             # Process callbacks/etc.

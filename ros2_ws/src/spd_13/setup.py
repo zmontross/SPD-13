@@ -23,7 +23,8 @@ setup(
             'serial_arbiter = spd_13.serial_arbiter:main',
             'serial_arbiter_sim = spd_13.serial_arbiter_sim:main',
             'differential_odometry = spd_13.differential_odometry:main',
-            'differential_cmd_vel = spd_13.differential_cmd_vel:main'
+            'differential_cmd_vel = spd_13.differential_cmd_vel:main',
+            'pid_velocity = spd_13.pid_velocity:main'
         ],
     },
 )

@@ -15,19 +15,20 @@ class DifferentialCmdVel(Node):
     def __init__(self):
         super().__init__('Cmd_Vel')
 
+
+        # Default measured via calipers, https://www.dfrobot.com/product-1477.html
         self.declare_parameter('wheel_diameter_meters', 0.04186)
 
+        # Default measured via CAD, https://grabcad.com/library/dfrobot-devastator-1
+        # Defined as the separation between the wheel centers, https://www.cs.columbia.edu/~allen/F17/NOTES/icckinematics.pdf
         self.declare_parameter('wheel_separation_meters', 0.1875)
 
 
         self.wheel_diameter_meters = self.get_parameter('wheel_diameter_meters').value
-
         self.wheel_separation_meters = self.get_parameter('wheel_separation_meters').value
-
 
         self.get_logger().info("Wheel diameter (m): {}".format(self.wheel_diameter_meters))
         self.get_logger().info("Wheel separation (m): {}".format(self.wheel_separation_meters))
-
         
         self.subscriber_cmd_vel = self.create_subscription(Twist, 'cmd_vel', self.cmd_vel_callback, 10)
 
@@ -85,7 +86,7 @@ def main(args=None):
         self.get_logger().info('Keyboard interrupt exception was caught. Shutting down.')
         pass
 
-    diff_odom.destroy_node()
+    diff_cmdvel.destroy_node()
     rclpy.shutdown()
 
 

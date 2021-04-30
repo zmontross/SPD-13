@@ -29,6 +29,7 @@ from rclpy.time import Time
 class DifferentialOdometry(Node):
     
     def __init__(self):
+
         super().__init__('Odometry')
 
         # TODO Relocate robot physical characteristics to an URDF file
@@ -121,16 +122,19 @@ class DifferentialOdometry(Node):
     #     print("joint_state_callback!")
 
     def encoder_left_callback(self, message):
+
         self.encoder_left_last = self.encoder_left
         self.encoder_left = message.data
 
 
     def encoder_right_callback(self, message):
+
         self.encoder_right_last = self.encoder_right
         self.encoder_right = message.data
 
     
     def update_callback(self):
+
         current_time = self.get_clock().now()
 
         dt = current_time - self.update_tlast
@@ -182,6 +186,7 @@ class DifferentialOdometry(Node):
         q.y = 0.0
         q.z = sin(self.position_theta / 2) # TODO Learning: Review why these angles are halved; Quaternion phenomena, not ROS-specific
         q.w = cos(self.position_theta / 2)
+        
         t = TransformStamped()
         t.header.stamp = current_time.to_msg()
         t.header.frame_id = self.odom_frame_id
@@ -191,14 +196,6 @@ class DifferentialOdometry(Node):
         t.transform.translation.z = 0.0
         t.transform.rotation = q
         self.transform_broadcaster.sendTransform(t)
-
-        # self.transform_broadcaster.sendTransform(    
-        #     (self.position_x, self.position_y, 0),
-        #     (q.x, q.y, q.z, q.w),
-        #     current_time,
-        #     self.base_frame_id,
-        #     self.odom_frame_id
-        # )
 
         odom = Odometry()
         odom.header.stamp = current_time.to_msg()
@@ -215,6 +212,7 @@ class DifferentialOdometry(Node):
         self.publisher_odom.publish(odom)
 
 def main(args=None):
+
     rclpy.init(args=args)
 
     diff_odom = DifferentialOdometry()
@@ -234,4 +232,5 @@ def main(args=None):
 
 
 if __name__ == '__main__':
+
     main()
