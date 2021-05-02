@@ -76,8 +76,7 @@ def main(args=None):
     try:
         rclpy.spin(sas)
 
-    except KeyboardInterrupt:
-        self.get_logger().info('Keyboard interrupt exception was caught. Shutting down.')
+    except:
         pass
 
     # Explicitly destroy node

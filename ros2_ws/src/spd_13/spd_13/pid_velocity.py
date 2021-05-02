@@ -58,7 +58,7 @@ class PidVelocity(Node):
         self.declare_parameter('kp', 2)
         self.declare_parameter('ki', 1)
         self.declare_parameter('kd', 0)
-        self.declare_parameter('pid_frequency_hz', 50)
+        self.declare_parameter('pid_frequency_hz', 5)
 
 
         self.encoder_count_minimum = self.get_parameter('encoder_count_minimum').value
@@ -75,14 +75,15 @@ class PidVelocity(Node):
         self.pid_ki = self.get_parameter('ki').value
         self.pid_kd = self.get_parameter('kd').value
         self.pid_step_dt = (1 / self.get_parameter('pid_frequency_hz').value)
-        
 
+        self.get_logger().info("PID Constants: Kp={}, Ki={}, Kd={}".format(self.pid_kp, self.pid_ki, self.pid_kd))
+        
 
         # Compute miscellanous information
         self.encoder_counts_per_meter = self.encoder_counts_per_rev / (self.wheel_diameter_meters * pi)
         
         self.velocity_setpoint = 0.0
-        self.velocity_samples = SimpleIntegerCircularBuffer(self.num_velocity_samples)
+        self.velocity_samples = SimpleCircularBuffer(self.num_velocity_samples)
         self.velocity_mean = 0.0    # a.k.a The PID "PV" or "Plant Value"
 
         self.encoder_count_meters_latest = 0.0
@@ -90,7 +91,7 @@ class PidVelocity(Node):
 
         self.time_current = self.get_clock().now()
         self.time_previous = self.time_current
-        self.dt = self.time_current - self.time_previous
+        self.dt = 0.000001  # Non-zero starting delta for initialization, 1us = 1e-6 sec
 
 
         self.error_integral = 0.0
@@ -109,55 +110,56 @@ class PidVelocity(Node):
         """
         Shuffle/record encoder counts, converting the latest reading into meters.
         """
-
+        self.time_previous = self.time_current
         self.encoder_count_meters_previous = self.encoder_count_meters_latest
 
+        self.time_current = self.get_clock().now()
         self.encoder_count_meters_latest = message.data / self.encoder_counts_per_meter
+
+        self.dt = (self.time_current.nanoseconds - self.time_previous.nanoseconds) / 1000000000.0 # nanosec to sec = 1e-9
 
 
     def velocity_setpoint_callback(self, message):
         """
         Record commanded velocity (meters-per-second)
         """
-        #TODO Ticks since Target
+        #TODO Ticks since Target???
         
+        self.error_integral = 0.0
+
+        self.error_last = 0.0
+
         self.velocity_setpoint = message.data
 
 
     def pid_callback(self):
 
-        self.dt = self.pid_timer.timer_period_ns / 1000000000 # nanosec to sec = 1e-9
-
         self.calculate_velocity()
 
         pid_output = self.pid_step()
 
-        pid_output = clamp(pid_output, self.motor_power_minimum, self.motor_power_maximum)
+        # pid_output = clamp(pid_output, self.motor_power_minimum, self.motor_power_maximum)
 
-        motor_power= Int16()
+        # motor_power= Int16()
 
-        motor_power.data = int(pid_output)
+        # motor_power.data = int(pid_output)
 
-        self.publisher_motor_power.publish(motor_power)
+        # self.publisher_motor_power.publish(motor_power)
 
 
     def calculate_velocity(self):
 
         instantaneous_velocity = 0.0
 
-        if(self.encoder_count_meters_latest == self.encoder_count_meters_previous):
-
-            instantaneous_velocity = (1 / self.encoder_counts_per_meter) / self.dt
-
-        else:
+        if(self.encoder_count_meters_latest != self.encoder_count_meters_previous):
 
             instantaneous_velocity = (self.encoder_count_meters_latest - self.encoder_count_meters_previous) / self.dt
 
-        self.velocity_samples.shift(instantaneous_velocity)
+        self.velocity_samples.shift(value=instantaneous_velocity)
 
         self.velocity_mean = self.velocity_samples.mean()
 
-        self.get_logger().info("Enc. Latest={0:.4f}m\tPrev.={1:.4f}m \tVelocity\tInst.= {2:.4f}m/s\tAvg.= {3:.4f}m/s".format(self.encoder_count_meters_latest, self.encoder_count_meters_previous, instantaneous_velocity, self.velocity_mean))
+        # self.get_logger().info("Distance |Latest={0:.6f}m  |  Prev.={1:.6f}m\tVelocity | Inst.= {2:.6f}m/s  |  Avg.= {3:.6f}m/s".format(self.encoder_count_meters_latest, self.encoder_count_meters_previous, instantaneous_velocity, self.velocity_mean))
 
 
     def pid_step(self):
@@ -175,17 +177,14 @@ class PidVelocity(Node):
                     + (self.pid_ki * self.error_integral)\
                     + (self.pid_kd * error_derivative)
 
-        # self.get_logger().info("PID, 1/2 ~ SP={0}m/s\tPV={1}m/s\tError={2}\tInteg.={3}\tDeriv.={4}".format(
-        #     self.velocity_setpoint, self.velocity_mean, error, self.error_integral, error_derivative
-        # ))
-        # self.get_logger().info("PID, 2/2 ~ Kp={0}\tKi={1}\tKd={2}\t\tOUTPUT={3}".format(
-        #     self.pid_kp, self.pid_ki, self.pid_kd, pid_output
-        # ))
+        self.get_logger().info("PID ~ SP={0:.5f}m/s | PV={1:.5f}m/s | Error={2:.5f} | Integ.={3:.5f} | Deriv.={4:.5f} | Output{5:.5f}".format(
+            self.velocity_setpoint, self.velocity_mean, error, self.error_integral, error_derivative, pid_output
+        ))
 
         return pid_output
 
 
-class SimpleIntegerCircularBuffer():
+class SimpleCircularBuffer():
     """
     Very basic implementation of a circular buffer of a fixed size using a Numpy array.
     This allows for the use of Numpy array methods such as 'mean()'.
@@ -197,7 +196,7 @@ class SimpleIntegerCircularBuffer():
 
     def __init__(self, size=1):
 
-        self._buffer = array([0] * size)
+        self._buffer = array([0.0] * size)
         self._index_oldest = 0
     
     def size(self):
@@ -217,7 +216,7 @@ class SimpleIntegerCircularBuffer():
         Overwrites every array element with a zero
         """
 
-        self._buffer.fill(0)
+        self._buffer.fill(0.0)
 
     def shift(self, value):
         """
@@ -253,8 +252,7 @@ def main(args=None):
             rclpy.spin_once(pid_velocity, timeout_sec=0.01)
             # do things
         
-    except KeyboardInterrupt:
-        self.get_logger().info('Keyboard interrupt exception was caught. Shutting down.')
+    except:
         pass
 
     pid_velocity.destroy_node()

@@ -82,8 +82,7 @@ def main(args=None):
             rclpy.spin_once(diff_cmdvel, timeout_sec=0.01)
             # do things
         
-    except KeyboardInterrupt:
-        self.get_logger().info('Keyboard interrupt exception was caught. Shutting down.')
+    except:
         pass
 
     diff_cmdvel.destroy_node()

@@ -223,8 +223,7 @@ def main(args=None):
             rclpy.spin_once(diff_odom, timeout_sec=0.01)
             # do things
         
-    except KeyboardInterrupt:
-        self.get_logger().info('Keyboard interrupt exception was caught. Shutting down.')
+    except:
         pass
 
     diff_odom.destroy_node()

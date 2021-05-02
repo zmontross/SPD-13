@@ -218,8 +218,7 @@ def main(args=None):
                 arbiter.update_motor_power_left = False
                 arbiter.serial_send("sm2 %d" % arbiter.requested_motor_power_left)
 
-    except KeyboardInterrupt:
-        self.get_logger().info('Keyboard interrupt exception was caught. Shutting down.')
+    except:
         pass
 
     # Explicitly destroy node
