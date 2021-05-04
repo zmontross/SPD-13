@@ -59,6 +59,9 @@ class PidVelocity(Node):
         self.declare_parameter('ki', 1)
         self.declare_parameter('kd', 0)
         self.declare_parameter('pid_frequency_hz', 5)
+        self.declare_parameter('pid_integral_windup_limit', 0.025)
+
+        self.declare_parameter('motor_velocity_power_factor', 0.000245) # constant multiplier for motor power; delta-V per unit of motor power
 
 
         self.encoder_count_minimum = self.get_parameter('encoder_count_minimum').value
@@ -75,6 +78,9 @@ class PidVelocity(Node):
         self.pid_ki = self.get_parameter('ki').value
         self.pid_kd = self.get_parameter('kd').value
         self.pid_step_dt = (1 / self.get_parameter('pid_frequency_hz').value)
+        self.pid_integral_windup_limit = self.get_parameter('pid_integral_windup_limit').value
+
+        self.motor_velocity_power_factor = self.get_parameter('motor_velocity_power_factor').value
 
         self.get_logger().info("PID Constants: Kp={}, Ki={}, Kd={}".format(self.pid_kp, self.pid_ki, self.pid_kd))
         
@@ -89,6 +95,8 @@ class PidVelocity(Node):
         self.encoder_count_meters_latest = 0.0
         self.encoder_count_meters_previous = 0.0
 
+        self.motor_power_latest = 0
+
         self.time_current = self.get_clock().now()
         self.time_previous = self.time_current
         self.dt = 0.000001  # Non-zero starting delta for initialization, 1us = 1e-6 sec
@@ -99,9 +107,10 @@ class PidVelocity(Node):
 
 
         self.subscriber_encoder_count = self.create_subscription(Int32, "encoder", self.encoder_callback, 10)
+        self.subscriber_motor_power = self.create_subscription(Int16, "motor_power", self.motor_power_callback, 10)
         self.subscriber_velocity_setpoint = self.create_subscription(Float32, "velocity_setpoint", self.velocity_setpoint_callback, 10)
 
-        self.publisher_motor_power = self.create_publisher(Int16, "motor_power", 10)
+        self.publisher_motor_power = self.create_publisher(Int16, "set_motor_power", 10)
 
         self.pid_timer = self.create_timer(self.pid_step_dt, self.pid_callback)
         
@@ -117,6 +126,12 @@ class PidVelocity(Node):
         self.encoder_count_meters_latest = message.data / self.encoder_counts_per_meter
 
         self.dt = (self.time_current.nanoseconds - self.time_previous.nanoseconds) / 1000000000.0 # nanosec to sec = 1e-9
+
+    def motor_power_callback(self, message):
+        """
+        reee
+        """
+        self.motor_power_latest = message.data
 
 
     def velocity_setpoint_callback(self, message):
@@ -137,6 +152,11 @@ class PidVelocity(Node):
         self.calculate_velocity()
 
         pid_output = self.pid_step()
+
+        # From the PID algorithm we receive a control-output.
+        # This C.O. has the same units as the Set Point (S.P.)
+        # The C.O. is the degree by which the P.V. must change to reach the S.P.
+        # The value can be much greater than the P.V.; it should be considered like an acceleration.
 
         # pid_output = clamp(pid_output, self.motor_power_minimum, self.motor_power_maximum)
 
@@ -164,11 +184,13 @@ class PidVelocity(Node):
 
     def pid_step(self):
 
-        # TODO Integral-windup protection
-
         error = self.velocity_setpoint - self.velocity_mean
 
-        self.error_integral = self.error_integral + (error * self.dt)
+        self.error_integral = clamp(
+            (self.error_integral + (error * self.dt)),
+            -self.pid_integral_windup_limit,            # Note: negative sign
+            self.pid_integral_windup_limit
+            )
 
         error_derivative = (error - self.error_last) / self.dt
         self.error_last = error
@@ -182,6 +204,22 @@ class PidVelocity(Node):
         ))
 
         return pid_output
+
+    def pid_to_motors(self, pid_output=0.0):
+        """
+        Translates the PID output into a useful motor value.
+        """
+        motor_power = 0
+
+        """
+        Limits...
+        minimum = 0, given
+        maximum = 400, given
+
+        velocity output
+        """
+
+        return motor_power
 
 
 class SimpleCircularBuffer():
