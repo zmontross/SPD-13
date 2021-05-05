@@ -30,7 +30,7 @@ class DifferentialOdometry(Node):
     
     def __init__(self):
 
-        super().__init__('Odometry')
+        super().__init__('Differential Odometry')
 
         # TODO Relocate robot physical characteristics to an URDF file
 
@@ -223,7 +223,8 @@ def main(args=None):
             rclpy.spin_once(diff_odom, timeout_sec=0.01)
             # do things
         
-    except:
+    except Exception as e:
+        print(e)
         pass
 
     diff_odom.destroy_node()

@@ -50,7 +50,7 @@ class SerialCommands():
 class SerialArbiter(Node):
 
     def __init__(self):
-        super().__init__('SerialArbiter')
+        super().__init__('Serial Arbiter')
 
         # Declare Parameters and default values
         self.declare_parameter('serial_port_path', '/dev/ttyACM0')
@@ -218,7 +218,8 @@ def main(args=None):
                 arbiter.update_motor_power_left = False
                 arbiter.serial_send("sm2 %d" % arbiter.requested_motor_power_left)
 
-    except:
+    except Exception as e:
+        print(e)
         pass
 
     # Explicitly destroy node

@@ -30,7 +30,7 @@ class PidVelocity(Node):
 
     def __init__(self):
 
-        super().__init__('PID_Velocity')
+        super().__init__('PID Velocity Controller')
 
         # Declare Parameters
         # Default 'encoder_count_minimum/maximum' derived from signed int32 range.

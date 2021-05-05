@@ -13,7 +13,7 @@ from std_msgs.msg import Float32
 class DifferentialCmdVel(Node):
 
     def __init__(self):
-        super().__init__('Cmd_Vel')
+        super().__init__('Differential Command Velocity')
 
 
         # Default measured via calipers, https://www.dfrobot.com/product-1477.html
@@ -80,7 +80,8 @@ def main(args=None):
             rclpy.spin_once(diff_cmdvel, timeout_sec=0.01)
             # do things
         
-    except:
+    except Exception as e:
+        print(e)
         pass
 
     diff_cmdvel.destroy_node()
