@@ -3,3 +3,6 @@ speedy@spd-13:~/spd_13$ ros2 run spd_13 pid_velocity /encoder:=/set_motor_power_
 [WARN] [1619757024.501841357] [rcl]: Found remap rule '/velocity_setpoint:=/velocity_right'. This syntax is deprecated. Use '--ros-args --remap /velocity_setpoint:=/velocity_right' instead.
 
 ros2 run <pkg> <node> --ros-args --remap /topic_one:=/topic_abc --remap /topic_two:=/topic_def
+
+ros2 run spd_13 pid_velocity --ros-args --remap /velocity_setpoint:=/velocity_right --remap /encoder:=/encoder_right --remap /motor_power:=/motor_power_right --remap /set_motor_power:=/set_motor_power_right
+

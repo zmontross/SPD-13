@@ -51,6 +51,7 @@ class PidVelocity(Node):
         self.declare_parameter('wheel_separation_meters', 0.1875)
         self.declare_parameter('motor_power_minimum', -400)
         self.declare_parameter('motor_power_maximum', 400)
+        self.declare_parameter('motor_power_maximum_step', 25)
 
         self.declare_parameter('velocity_threshold', 0.001)
         self.declare_parameter('num_velocity_samples', 5)
@@ -60,6 +61,7 @@ class PidVelocity(Node):
         self.declare_parameter('kd', 0)
         self.declare_parameter('pid_frequency_hz', 5)
         self.declare_parameter('pid_integral_windup_limit', 0.025)
+        self.declare_parameter('pid_output_limit', 0.1)
 
         self.declare_parameter('motor_velocity_power_factor', 0.000245) # constant multiplier for motor power; delta-V per unit of motor power
 
@@ -73,17 +75,17 @@ class PidVelocity(Node):
         self.num_velocity_samples = self.get_parameter('num_velocity_samples').value
         self.motor_power_minimum = self.get_parameter('motor_power_minimum').value
         self.motor_power_maximum = self.get_parameter('motor_power_maximum').value
+        self.motor_power_maximum_step = self.get_parameter('motor_power_maximum_step').value
 
         self.pid_kp = self.get_parameter('kp').value
         self.pid_ki = self.get_parameter('ki').value
         self.pid_kd = self.get_parameter('kd').value
         self.pid_step_dt = (1 / self.get_parameter('pid_frequency_hz').value)
         self.pid_integral_windup_limit = self.get_parameter('pid_integral_windup_limit').value
+        self.pid_output_limit = self.get_parameter('pid_output_limit').value
 
         self.motor_velocity_power_factor = self.get_parameter('motor_velocity_power_factor').value
 
-        self.get_logger().info("PID Constants: Kp={}, Ki={}, Kd={}".format(self.pid_kp, self.pid_ki, self.pid_kd))
-        
 
         # Compute miscellanous information
         self.encoder_counts_per_meter = self.encoder_counts_per_rev / (self.wheel_diameter_meters * pi)
@@ -105,6 +107,7 @@ class PidVelocity(Node):
         self.error_integral = 0.0
         self.error_last = 0.0
 
+        self.get_logger().info("PID Constants: Kp={}, Ki={}, Kd={}".format(self.pid_kp, self.pid_ki, self.pid_kd))
 
         self.subscriber_encoder_count = self.create_subscription(Int32, "encoder", self.encoder_callback, 10)
         self.subscriber_motor_power = self.create_subscription(Int16, "motor_power", self.motor_power_callback, 10)
@@ -128,9 +131,7 @@ class PidVelocity(Node):
         self.dt = (self.time_current.nanoseconds - self.time_previous.nanoseconds) / 1000000000.0 # nanosec to sec = 1e-9
 
     def motor_power_callback(self, message):
-        """
-        reee
-        """
+
         self.motor_power_latest = message.data
 
 
@@ -138,7 +139,6 @@ class PidVelocity(Node):
         """
         Record commanded velocity (meters-per-second)
         """
-        #TODO Ticks since Target???
         
         self.error_integral = 0.0
 
@@ -158,13 +158,13 @@ class PidVelocity(Node):
         # The C.O. is the degree by which the P.V. must change to reach the S.P.
         # The value can be much greater than the P.V.; it should be considered like an acceleration.
 
-        # pid_output = clamp(pid_output, self.motor_power_minimum, self.motor_power_maximum)
+        motor_power = self.pid_to_motors(pid_output)
 
-        # motor_power= Int16()
+        motor_power_msg = Int16()
 
-        # motor_power.data = int(pid_output)
+        motor_power_msg.data = motor_power
 
-        # self.publisher_motor_power.publish(motor_power)
+        self.publisher_motor_power.publish(motor_power_msg)
 
 
     def calculate_velocity(self):
@@ -186,18 +186,28 @@ class PidVelocity(Node):
 
         error = self.velocity_setpoint - self.velocity_mean
 
+        # Proportional component
+        # Later computed as Kp * error
+
+        # Integral component
+        # Clamped to prevent wind-up
         self.error_integral = clamp(
             (self.error_integral + (error * self.dt)),
             -self.pid_integral_windup_limit,            # Note: negative sign
             self.pid_integral_windup_limit
             )
 
+        # Derivative component
         error_derivative = (error - self.error_last) / self.dt
         self.error_last = error
 
-        pid_output = (self.pid_kp * error)\
-                    + (self.pid_ki * self.error_integral)\
+        # Raw PID computation
+        pid_output = (self.pid_kp * error) \
+                    + (self.pid_ki * self.error_integral) \
                     + (self.pid_kd * error_derivative)
+
+        # PID Output clamped within bounds of maximum possible velocity
+        pid_output = clamp(pid_output, -self.pid_output_limit, self.pid_output_limit)
 
         self.get_logger().info("PID ~ SP={0:.5f}m/s | PV={1:.5f}m/s | Error={2:.5f} | Integ.={3:.5f} | Deriv.={4:.5f} | Output{5:.5f}".format(
             self.velocity_setpoint, self.velocity_mean, error, self.error_integral, error_derivative, pid_output
@@ -216,8 +226,27 @@ class PidVelocity(Node):
         minimum = 0, given
         maximum = 400, given
 
-        velocity output
+        Motors cannot change instantaneously. They must change gradually. Maybe we adjust a step size sent to the motors every publish?
+
+        0.000245 m/s / power
+
+        Max possible unloaded velocity is 0.1 m/s
+
+        Max motor step size is 25, i.e. the most we can increase motor power is 25 every.... How often???
+
+        PID calc frequency is 0.2sec, this is safe for a motor step of 25 based on experimentation / known-behavior.
         """
+
+        # Convert PID output into an equivalent motor power value
+        pid_motor_power = pid_output / self.motor_velocity_power_factor
+
+        # Power given to motors is clamped to the parameterized maximum step size.
+        if pid_motor_power < 0:
+            motor_power = int(self.motor_power_latest + max(-self.motor_power_maximum_step, pid_motor_power))
+        else:
+            motor_power = int(self.motor_power_latest + min(self.motor_power_maximum_step, pid_motor_power))
+
+        self.get_logger().info('~~ PID Motor Power = {}'.format(motor_power))
 
         return motor_power
 
@@ -290,7 +319,8 @@ def main(args=None):
             rclpy.spin_once(pid_velocity, timeout_sec=0.01)
             # do things
         
-    except:
+    except Exception as e:
+        print(e)
         pass
 
     pid_velocity.destroy_node()
