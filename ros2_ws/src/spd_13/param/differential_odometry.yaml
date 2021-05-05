@@ -1,0 +1,10 @@
+differential_odometry:
+  ros__parameters:
+    encoder_count_minimum: -2147483648
+    encoder_count_maximum: 2147483647
+    encoder_counts_per_rev: 2248.86
+    wheel_diameter_meters: 0.04186
+    wheel_separation_meters: 0.1875
+    base_frame_id: 'base_frame'
+    odom_frame_id: 'odom'
+    

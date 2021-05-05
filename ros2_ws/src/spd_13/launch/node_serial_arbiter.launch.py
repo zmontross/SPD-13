@@ -1,3 +1,7 @@
+"""
+# Description: Launch file for a single instance of the 'serial_arbiter' node
+"""
+
 import os
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
@@ -7,7 +11,8 @@ def generate_launch_description():
 
     ld = LaunchDescription()
 
-    config = os.path.join(
+    # Parameters are stored in 'pkg_dir/param/'
+    params = os.path.join(
         get_package_share_directory('spd_13'),
         'param',
         'serial_arbiter.yaml'
@@ -18,7 +23,7 @@ def generate_launch_description():
         package = 'spd_13',
         executable = 'serial_arbiter',
         output = 'screen',
-        parameters = [config],
+        parameters = [params],
     )
     ld.add_action(serial_arbiter)
 

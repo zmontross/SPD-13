@@ -1,0 +1,5 @@
+differential_cmd_vel:
+  ros__parameters:
+    wheel_diameter_meters: 0.04186
+    wheel_separation_meters: 0.1875
+    
