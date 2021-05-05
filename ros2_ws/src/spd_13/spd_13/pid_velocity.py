@@ -1,6 +1,6 @@
 ## TODO gross eyesore license agreement
 
-## TODO Credit https://github.com/jfstepha/differential-drive/blob/master/scripts/pid_velocity.py
+## TODO Credit https://github.com/jfstepha/differential-drive/blob/master/scripts/py
 
 
 from numpy import array
@@ -30,7 +30,7 @@ class PidVelocity(Node):
 
     def __init__(self):
 
-        super().__init__('PID Velocity Controller')
+        super().__init__('pid_velocity_controller')
 
         # Declare Parameters
         # Default 'encoder_count_minimum/maximum' derived from signed int32 range.
@@ -323,7 +323,7 @@ def main(args=None):
         print(e)
         pass
 
-    pid_velocity.destroy_node()
+    destroy_node()
     rclpy.shutdown()
 
 

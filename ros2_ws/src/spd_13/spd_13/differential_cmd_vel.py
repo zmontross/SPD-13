@@ -13,7 +13,7 @@ from std_msgs.msg import Float32
 class DifferentialCmdVel(Node):
 
     def __init__(self):
-        super().__init__('Differential Command Velocity')
+        super().__init__('differential_command_velocity')
 
 
         # Default measured via calipers, https://www.dfrobot.com/product-1477.html

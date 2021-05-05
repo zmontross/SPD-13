@@ -27,7 +27,7 @@ class PseudoEncoder():
 class SerialArbiterSim(Node):
 
     def __init__(self):
-        super().__init__('Serial Arbiter Simulator')
+        super().__init__('serial_arbiter_simulator')
 
         self.declare_parameter('ticks_per_second', 2000)
         self.declare_parameter('encoder_publish_period_sec', 0.01)

@@ -50,28 +50,22 @@ class SerialCommands():
 class SerialArbiter(Node):
 
     def __init__(self):
-        super().__init__('Serial Arbiter')
+        super().__init__('serial_arbiter')
 
         # Declare Parameters and default values
         self.declare_parameter('serial_port_path', '/dev/ttyACM0')
-        self.declare_parameter('serial_baud_rate', '115200')
-        self.declare_parameter('serial_terminator_char', '\r')
-
-        self.declare_parameter('data_publish_period', '0.01')
+        self.declare_parameter('serial_baud_rate', 115200)
+        self.declare_parameter('data_publish_period', 0.01)
 
 
         # Store parameter values and log them to file
-        self.serial_port_path = self.get_parameter('serial_port_path').get_parameter_value().string_value
-        self.get_logger().info('Serial Port path: %s' % self.serial_port_path)
+        self.serial_port_path = self.get_parameter('serial_port_path').value
+        self.serial_baud_rate = self.get_parameter('serial_baud_rate').value
+        self.data_publish_period = self.get_parameter('data_publish_period').value
 
-        self.serial_baud_rate = self.get_parameter('serial_baud_rate').get_parameter_value().string_value
-        self.get_logger().info('Serial Port baud rate: %s' % self.serial_baud_rate)
-
-        self.serial_terminator = self.get_parameter('serial_terminator_char').get_parameter_value().string_value
-        self.get_logger().info('Serial Port terminator: %s' % self.serial_terminator)
-
-        self.data_publish_period = self.get_parameter('data_publish_period').get_parameter_value().string_value
-        self.get_logger().info('Encoder publish period (sec): %s' % self.data_publish_period)
+        self.get_logger().info('Serial Port path: {}'.format(self.serial_port_path))
+        self.get_logger().info('Serial Port baud rate: {}'.format(self.serial_baud_rate))
+        self.get_logger().info('Encoder publish period (sec): {}'.format(self.data_publish_period))
 
 
         # Variables for storing latest responses from serial.
@@ -156,18 +150,18 @@ class SerialArbiter(Node):
         for param in params:
             if param.name == 'data_publish_period':
                 self.data_publish_period = param.value
-                self.timer_publish_all.timer_period_ns = float(self.data_publish_period)*1000000000.0   # Seconds-to-Nanoseconds
+                self.timer_publish_all.timer_period_ns = self.data_publish_period * 1000000000.0   # Seconds-to-Nanoseconds
                 success = True
         return SetParametersResult(successful=success)
 
     def set_motor_power_right_callback(self, message):
         self.requested_motor_power_right = int(message.data)
-        self.get_logger().debug('Subscription rx, Right Motor Power, %d' % self.requested_motor_power_right)
+        self.get_logger().debug('Subscription rx, Right Motor Power, {}'.format(self.requested_motor_power_right))
         self.update_motor_power_right = True
     
     def set_motor_power_left_callback(self, message):
         self.requested_motor_power_left = int(message.data)
-        self.get_logger().debug('Subscription rx, Left Motor Power, %d' % self.requested_motor_power_left)
+        self.get_logger().debug('Subscription rx, Left Motor Power, {}'.format(self.requested_motor_power_left))
         self.update_motor_power_left = True
 
 
@@ -177,13 +171,13 @@ class SerialArbiter(Node):
         self.serial_port.reset_output_buffer()
 
         # Write given input as raw bytes; Arduino code is expected to handle any possible input.
-        self.serial_port.write(bytes(tx + self.serial_terminator, 'utf-8'))
+        self.serial_port.write(bytes(tx + '\r', 'utf-8'))
 
         # Grab raw bytes up to the pre-agreed terminator.
-        rx = self.serial_port.read_until(bytes(self.serial_terminator, 'utf-8'), SerialCommands.MAX_BYTES)
+        rx = self.serial_port.read_until(bytes('\r', 'utf-8'), SerialCommands.MAX_BYTES)
 
         # Convert bytes to string, remove expected terminator.
-        rx = rx.decode('utf-8').strip(self.serial_terminator)
+        rx = rx.decode('utf-8').strip('\r')
 
         return rx
 
@@ -193,6 +187,7 @@ def main(args=None):
 
     arbiter = SerialArbiter()
 
+    arbiter.serial_send('\r\r\r\r') # Send some terminating chars to properly synchronize with other side; "spam the Enter-key"
     arbiter.serial_send(SerialCommands.do_beep4) # Beep to alert, notify of running state
 
     #TODO Add serial-prepping function, a delay or something, to counteract occasional crashes caused by getting bad feedback.

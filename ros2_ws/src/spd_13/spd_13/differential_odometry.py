@@ -30,7 +30,7 @@ class DifferentialOdometry(Node):
     
     def __init__(self):
 
-        super().__init__('Differential Odometry')
+        super().__init__('differential_odometry')
 
         # TODO Relocate robot physical characteristics to an URDF file
 

@@ -1,0 +1,5 @@
+serial_arbiter:
+  ros__parameters:
+    serial_port_path: '/dev/ttyACM0'
+    serial_baud_rate': 115200
+    data_publish_period: 0.5
