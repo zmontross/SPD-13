@@ -1,5 +1,6 @@
 ## TODO gross eyesore license agreement
 
+# TODO Bug: Occasionally motor messages fail to parse. Observed to happen with accel/gyro too.
 
 import serial
 
@@ -110,38 +111,54 @@ class SerialArbiter(Node):
     def publish_all_callback(self):
 
         # Accelerometer
-        accel_msg = String()
-        _, ax, ay, az = self.serial_rx_qa.split(':')
-        accel_msg.data = "x={}|y={}|z={}".format(ax, ay, az)
-        self.publisher_accel.publish(accel_msg)
-        self.get_logger().debug('Publishing Acceleration, %s' % accel_msg.data)
+        try:
+            accel_msg = String()
+            _, ax, ay, az = self.serial_rx_qa.split(':')
+            accel_msg.data = "x={}|y={}|z={}".format(ax, ay, az)
+            self.publisher_accel.publish(accel_msg)
+            self.get_logger().debug('Publishing Acceleration, %s' % accel_msg.data)
+        except:
+            self.get_logger().warning("Failed to parse Accelerometer message.")
+            pass
 
         # Gyroscope
-        gyro_msg = String()
-        _, gx, gy, gz = self.serial_rx_qg.split(':')
-        gyro_msg.data = "x={}|y={}|z={}".format(gx, gy, gz)
-        self.publisher_accel.publish(gyro_msg)
-        self.get_logger().debug('Publishing Gyroscope, %s' % gyro_msg.data)
+        try:
+            gyro_msg = String()
+            _, gx, gy, gz = self.serial_rx_qg.split(':')
+            gyro_msg.data = "x={}|y={}|z={}".format(gx, gy, gz)
+            self.publisher_accel.publish(gyro_msg)
+            self.get_logger().debug('Publishing Gyroscope, %s' % gyro_msg.data)
+        except:
+            self.get_logger().warning("Failed to parse Gyroscope message.")
+            pass
 
         # Encoders
-        enc_right_msg = Int32()
-        enc_left_msg = Int32()
-        _, enc_right_msg_temp, enc_left_msg_temp = self.serial_rx_qe.split(':')
-        enc_right_msg.data = int(enc_right_msg_temp)
-        enc_left_msg.data = int(enc_left_msg_temp)
-        self.publisher_enc_right.publish(enc_right_msg)
-        self.publisher_enc_left.publish(enc_left_msg)
-        self.get_logger().debug('Publishing Encoders, R[{}] L[{}]'.format(enc_right_msg.data, enc_left_msg.data))
+        try:
+            enc_right_msg = Int32()
+            enc_left_msg = Int32()
+            _, enc_right_msg_temp, enc_left_msg_temp = self.serial_rx_qe.split(':')
+            enc_right_msg.data = int(enc_right_msg_temp)
+            enc_left_msg.data = int(enc_left_msg_temp)
+            self.publisher_enc_right.publish(enc_right_msg)
+            self.publisher_enc_left.publish(enc_left_msg)
+            self.get_logger().debug('Publishing Encoders, R[{}] L[{}]'.format(enc_right_msg.data, enc_left_msg.data))
+        except:
+            self.get_logger().warning("Failed to parse Encoder message.")
+            pass
 
         # Motors
-        motor_right_msg = Int16()
-        motor_left_msg = Int16()
-        _, motor_right_msg_temp, motor_left_msg_temp = self.serial_rx_qm.split(':')
-        motor_right_msg.data = int(motor_right_msg_temp)
-        motor_left_msg.data = int(motor_left_msg_temp)
-        self.publisher_motor_right.publish(motor_right_msg)
-        self.publisher_motor_left.publish(motor_left_msg)
-        self.get_logger().debug('Publishing Motor Power, R[{}] L[{}]'.format(motor_right_msg.data, motor_left_msg.data))
+        try:
+            motor_right_msg = Int16()
+            motor_left_msg = Int16()
+            _, motor_right_msg_temp, motor_left_msg_temp = self.serial_rx_qm.split(':')
+            motor_right_msg.data = int(motor_right_msg_temp)
+            motor_left_msg.data = int(motor_left_msg_temp)
+            self.publisher_motor_right.publish(motor_right_msg)
+            self.publisher_motor_left.publish(motor_left_msg)
+            self.get_logger().debug('Publishing Motor Power, R[{}] L[{}]'.format(motor_right_msg.data, motor_left_msg.data))
+        except:
+            self.get_logger().warning("Failed to parse Motor message.")
+            pass
 
 
     def parameters_callback(self, params):
@@ -183,15 +200,17 @@ class SerialArbiter(Node):
 
 
 def main(args=None):
+
     rclpy.init(args=args)
 
     arbiter = SerialArbiter()
 
-    arbiter.serial_send('\r\r\r\r') # Send some terminating chars to properly synchronize with other side; "spam the Enter-key"
+    arbiter.serial_send('\r\r') # Send some terminating chars to properly synchronize with other side; "spam the Enter-key"
+    arbiter.serial_send(SerialCommands.reset_enc1)
+    arbiter.serial_send(SerialCommands.reset_enc2)
+    arbiter.serial_send('sm1 0') # Stop motor 1
+    arbiter.serial_send('sm2 0') # Stop motor 2
     arbiter.serial_send(SerialCommands.do_beep4) # Beep to alert, notify of running state
-
-    #TODO Add serial-prepping function, a delay or something, to counteract occasional crashes caused by getting bad feedback.
-    #TODO encapsulate publish logic with try/except
 
     try:
         while rclpy.ok():
@@ -213,8 +232,16 @@ def main(args=None):
                 arbiter.update_motor_power_left = False
                 arbiter.serial_send("sm2 %d" % arbiter.requested_motor_power_left)
 
+        
+
     except Exception as e:
-        print(e)
+        arbiter.get_logger().error(e)
+        pass
+
+    try:
+        arbiter.serial_send('sm1 0') # Stop motor 1
+        arbiter.serial_send('sm2 0') # Stop motor 2
+    except:
         pass
 
     # Explicitly destroy node

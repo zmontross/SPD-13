@@ -106,6 +106,8 @@ class PidVelocity(Node):
 
         self.error_integral = 0.0
         self.error_last = 0.0
+        self.pid_output_samples = SimpleCircularBuffer(self.num_velocity_samples)
+        self.pid_output_mean = 0.0
 
         self.get_logger().info("PID Constants: Kp={}, Ki={}, Kd={}".format(self.pid_kp, self.pid_ki, self.pid_kd))
 
@@ -151,23 +153,15 @@ class PidVelocity(Node):
 
         self.calculate_velocity()
 
-        pid_output = self.pid_step()
+        self.pid_step()
 
-        # From the PID algorithm we receive a control-output.
-        # This C.O. has the same units as the Set Point (S.P.)
-        # The C.O. is the degree by which the P.V. must change to reach the S.P.
-        # The value can be much greater than the P.V.; it should be considered like an acceleration.
-
-        motor_power = self.pid_to_motors(pid_output)
-
-        motor_power_msg = Int16()
-
-        motor_power_msg.data = motor_power
-
-        self.publisher_motor_power.publish(motor_power_msg)
+        motor_power = Int16()
+        mpdata = self.pid_to_motors(self.pid_output_mean)
+        motor_power.data = mpdata
+        self.publisher_motor_power.publish(motor_power)
 
         self.get_logger().info('SP: {0:.6f}\tPV: {1:.6f}\tPID: {2:.6f}\tMotor: {3}'.format(
-            self.velocity_setpoint, self.velocity_mean, pid_output, motor_power
+            self.velocity_setpoint, self.velocity_mean, self.pid_output_mean, mpdata
             )
         )
 
@@ -214,33 +208,16 @@ class PidVelocity(Node):
         # PID Output clamped within bounds of maximum possible velocity
         pid_output = clamp(pid_output, -self.pid_output_limit, self.pid_output_limit)
 
-        # self.get_logger().info("PID ~ SP={0:.5f}m/s | PV={1:.5f}m/s | Error={2:.5f} | Integ.={3:.5f} | Deriv.={4:.5f} | Output{5:.5f}".format(
-        #     self.velocity_setpoint, self.velocity_mean, error, self.error_integral, error_derivative, pid_output
-        # ))
+        self.pid_output_samples.shift(value=pid_output)
 
-        return pid_output
+        self.pid_output_mean = self.pid_output_samples.mean()
+
 
     def pid_to_motors(self, pid_output=0.0):
         """
         Translates the PID output into a useful motor value.
         """
         motor_power = 0
-
-        """
-        Limits...
-        minimum = 0, given
-        maximum = 400, given
-
-        Motors cannot change instantaneously. They must change gradually. Maybe we adjust a step size sent to the motors every publish?
-
-        0.000245 m/s / power
-
-        Max possible unloaded velocity is 0.1 m/s
-
-        Max motor step size is 25, i.e. the most we can increase motor power is 25 every.... How often???
-
-        PID calc frequency is 0.2sec, this is safe for a motor step of 25 based on experimentation / known-behavior.
-        """
 
         # Convert PID output into an equivalent motor power value
         pid_motor_power = pid_output / self.motor_velocity_power_factor
@@ -328,7 +305,7 @@ def main(args=None):
         print(e)
         pass
 
-    destroy_node()
+    pid_velocity.destroy_node()
     rclpy.shutdown()
 
 
