@@ -7,12 +7,12 @@ pid_velocity_right:
     wheel_separation_meters: 0.1875
     motor_power_minimum: -400
     motor_power_maximum: 400
-    motor_power_maximum_step: 25
-    velocity_threshold: 0.001
+    motor_power_maximum_step: 50
+    velocity_threshold: 0.0005
     num_velocity_samples: 5
-    kp: 2
-    ki: 1
-    kd: 0
+    kp: 0.9
+    ki: 0.25
+    kd: 0.05
     pid_frequency_hz: 5
     pid_integral_windup_limit: 0.025
     pid_output_limit: 0.1
@@ -27,12 +27,12 @@ pid_velocity_left:
     wheel_separation_meters: 0.1875
     motor_power_minimum: -400
     motor_power_maximum: 400
-    motor_power_maximum_step: 25
-    velocity_threshold: 0.001
+    motor_power_maximum_step: 50
+    velocity_threshold: 0.0005
     num_velocity_samples: 5
-    kp: 2
-    ki: 1
-    kd: 0
+    kp: 0.9
+    ki: 0.25
+    kd: 0.05
     pid_frequency_hz: 5
     pid_integral_windup_limit: 0.025
     pid_output_limit: 0.1

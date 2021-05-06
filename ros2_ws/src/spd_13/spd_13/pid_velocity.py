@@ -166,6 +166,11 @@ class PidVelocity(Node):
 
         self.publisher_motor_power.publish(motor_power_msg)
 
+        self.get_logger().info('SP: {0:.6f}\tPV: {1:.6f}\tPID: {2:.6f}\tMotor: {3}'.format(
+            self.velocity_setpoint, self.velocity_mean, pid_output, motor_power
+            )
+        )
+
 
     def calculate_velocity(self):
 
@@ -209,9 +214,9 @@ class PidVelocity(Node):
         # PID Output clamped within bounds of maximum possible velocity
         pid_output = clamp(pid_output, -self.pid_output_limit, self.pid_output_limit)
 
-        self.get_logger().info("PID ~ SP={0:.5f}m/s | PV={1:.5f}m/s | Error={2:.5f} | Integ.={3:.5f} | Deriv.={4:.5f} | Output{5:.5f}".format(
-            self.velocity_setpoint, self.velocity_mean, error, self.error_integral, error_derivative, pid_output
-        ))
+        # self.get_logger().info("PID ~ SP={0:.5f}m/s | PV={1:.5f}m/s | Error={2:.5f} | Integ.={3:.5f} | Deriv.={4:.5f} | Output{5:.5f}".format(
+        #     self.velocity_setpoint, self.velocity_mean, error, self.error_integral, error_derivative, pid_output
+        # ))
 
         return pid_output
 
@@ -246,7 +251,7 @@ class PidVelocity(Node):
         else:
             motor_power = int(self.motor_power_latest + min(self.motor_power_maximum_step, pid_motor_power))
 
-        self.get_logger().info('~~ PID Motor Power = {}'.format(motor_power))
+        # self.get_logger().info('~~ PID Motor Power = {}'.format(motor_power))
 
         return motor_power
 
