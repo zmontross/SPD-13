@@ -12,10 +12,10 @@ pid_velocity_right:
     num_velocity_samples: 7
     kp: 0.35
     ki: 0.016
-    kd: 0.008
+    kd: 0.009875
     pid_frequency_hz: 8
-    pid_integral_windup_limit: 1.0
-    pid_output_limit: 0.1
+    pid_integral_windup_limit: 0.85
+    pid_output_limit: 0.85
     motor_velocity_power_factor: 0.000245
 
 pid_velocity_left:
@@ -32,8 +32,8 @@ pid_velocity_left:
     num_velocity_samples: 7
     kp: 0.35
     ki: 0.016
-    kd: 0.008
+    kd: 0.009875
     pid_frequency_hz: 8
-    pid_integral_windup_limit: 1.0
-    pid_output_limit: 0.1
+    pid_integral_windup_limit: 0.85
+    pid_output_limit: 0.85
     motor_velocity_power_factor: 0.000245

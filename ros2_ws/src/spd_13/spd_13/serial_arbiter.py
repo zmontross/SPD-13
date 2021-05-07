@@ -111,10 +111,66 @@ class SerialArbiter(Node):
     def publish_all_callback(self):
 
         # Poll data from serial, store responses.
-        self.serial_rx_qa =  self.serial_send(SerialCommands.query_accelerometer)
-        self.serial_rx_qg =  self.serial_send(SerialCommands.query_gyroscope)
-        self.serial_rx_qe =  self.serial_send(SerialCommands.query_encoders)
-        self.serial_rx_qm =  self.serial_send(SerialCommands.query_motors)
+        # self.serial_rx_qa =  self.serial_send(SerialCommands.query_accelerometer)
+        # self.serial_rx_qg =  self.serial_send(SerialCommands.query_gyroscope)
+        # self.serial_rx_qe =  self.serial_send(SerialCommands.query_encoders)
+        # self.serial_rx_qm =  self.serial_send(SerialCommands.query_motors)
+
+        # Accelerometer
+        try:
+            accel_msg = String()
+            self.serial_rx_qa =  self.serial_send(SerialCommands.query_accelerometer)
+            _, ax, ay, az = self.serial_rx_qa.split(':')
+            accel_msg.data = "x={}|y={}|z={}".format(ax, ay, az)
+            self.publisher_accel.publish(accel_msg)
+            self.get_logger().debug('Publishing Acceleration, %s' % accel_msg.data)
+        except:
+            self.get_logger().warning("Failed to parse Accelerometer message.")
+            pass
+
+        # Gyroscope
+        try:
+            gyro_msg = String()
+            self.serial_rx_qg =  self.serial_send(SerialCommands.query_gyroscope)
+            _, gx, gy, gz = self.serial_rx_qg.split(':')
+            gyro_msg.data = "x={}|y={}|z={}".format(gx, gy, gz)
+            self.publisher_accel.publish(gyro_msg)
+            self.get_logger().debug('Publishing Gyroscope, %s' % gyro_msg.data)
+        except:
+            self.get_logger().warning("Failed to parse Gyroscope message.")
+            pass
+
+        # Encoders
+        try:
+            enc_right_msg = Int32()
+            enc_left_msg = Int32()
+            self.serial_rx_qe =  self.serial_send(SerialCommands.query_encoders)
+            _, enc_right_msg_temp, enc_left_msg_temp = self.serial_rx_qe.split(':')
+            enc_right_msg.data = int(enc_right_msg_temp)
+            enc_left_msg.data = int(enc_left_msg_temp)
+            self.publisher_enc_right.publish(enc_right_msg)
+            self.publisher_enc_left.publish(enc_left_msg)
+            self.get_logger().debug('Publishing Encoders, R[{}] L[{}]'.format(enc_right_msg.data, enc_left_msg.data))
+        except:
+            self.get_logger().warning("Failed to parse Encoder message.")
+            pass
+
+        # Motors
+        try:
+            motor_right_msg = Int16()
+            motor_left_msg = Int16()
+            self.serial_rx_qm =  self.serial_send(SerialCommands.query_motors)
+            _, motor_right_msg_temp, motor_left_msg_temp = self.serial_rx_qm.split(':')
+            motor_right_msg.data = int(motor_right_msg_temp)
+            motor_left_msg.data = int(motor_left_msg_temp)
+            self.publisher_motor_right.publish(motor_right_msg)
+            self.publisher_motor_left.publish(motor_left_msg)
+            self.get_logger().debug('Publishing Motor Power, R[{}] L[{}]'.format(motor_right_msg.data, motor_left_msg.data))
+        except:
+            self.get_logger().warning("Failed to parse Motor message.")
+            pass
+
+
 
         # Update motor speeds if requested by subscriptions.
         try:
@@ -131,56 +187,6 @@ class SerialArbiter(Node):
                 self.serial_send("sm2 %d" % self.requested_motor_power_left)
         except:
             self.get_logger().warning("Failed to update Motor 2 power.")
-            pass
-
-        # Accelerometer
-        try:
-            accel_msg = String()
-            _, ax, ay, az = self.serial_rx_qa.split(':')
-            accel_msg.data = "x={}|y={}|z={}".format(ax, ay, az)
-            self.publisher_accel.publish(accel_msg)
-            self.get_logger().debug('Publishing Acceleration, %s' % accel_msg.data)
-        except:
-            self.get_logger().warning("Failed to parse Accelerometer message.")
-            pass
-
-        # Gyroscope
-        try:
-            gyro_msg = String()
-            _, gx, gy, gz = self.serial_rx_qg.split(':')
-            gyro_msg.data = "x={}|y={}|z={}".format(gx, gy, gz)
-            self.publisher_accel.publish(gyro_msg)
-            self.get_logger().debug('Publishing Gyroscope, %s' % gyro_msg.data)
-        except:
-            self.get_logger().warning("Failed to parse Gyroscope message.")
-            pass
-
-        # Encoders
-        try:
-            enc_right_msg = Int32()
-            enc_left_msg = Int32()
-            _, enc_right_msg_temp, enc_left_msg_temp = self.serial_rx_qe.split(':')
-            enc_right_msg.data = int(enc_right_msg_temp)
-            enc_left_msg.data = int(enc_left_msg_temp)
-            self.publisher_enc_right.publish(enc_right_msg)
-            self.publisher_enc_left.publish(enc_left_msg)
-            self.get_logger().debug('Publishing Encoders, R[{}] L[{}]'.format(enc_right_msg.data, enc_left_msg.data))
-        except:
-            self.get_logger().warning("Failed to parse Encoder message.")
-            pass
-
-        # Motors
-        try:
-            motor_right_msg = Int16()
-            motor_left_msg = Int16()
-            _, motor_right_msg_temp, motor_left_msg_temp = self.serial_rx_qm.split(':')
-            motor_right_msg.data = int(motor_right_msg_temp)
-            motor_left_msg.data = int(motor_left_msg_temp)
-            self.publisher_motor_right.publish(motor_right_msg)
-            self.publisher_motor_left.publish(motor_left_msg)
-            self.get_logger().debug('Publishing Motor Power, R[{}] L[{}]'.format(motor_right_msg.data, motor_left_msg.data))
-        except:
-            self.get_logger().warning("Failed to parse Motor message.")
             pass
 
 

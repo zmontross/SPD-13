@@ -104,10 +104,8 @@ class PidVelocity(Node):
         self.dt = 0.000001  # Non-zero starting delta for initialization, 1us = 1e-6 sec
 
 
-        self.error_integral = 0.0
-        self.error_last = 0.0
-        self.pid_output_samples = SimpleCircularBuffer(self.num_velocity_samples)
-        self.pid_output_mean = 0.0
+        self.pid_error_samples = SimpleCircularBuffer(self.num_velocity_samples)
+        self.pid_output = 0.0
 
         self.get_logger().info("PID Constants: Kp={}, Ki={}, Kd={}".format(self.pid_kp, self.pid_ki, self.pid_kd))
 
@@ -141,10 +139,6 @@ class PidVelocity(Node):
         """
         Record commanded velocity (meters-per-second)
         """
-        
-        self.error_integral = 0.0
-
-        self.error_last = 0.0
 
         self.velocity_setpoint = message.data
 
@@ -155,13 +149,12 @@ class PidVelocity(Node):
 
         self.pid_step()
 
-        motor_power = Int16()
-        mpdata = self.pid_to_motors(self.pid_output_mean)
-        motor_power.data = mpdata
+        motor_power = Int16()        
+        motor_power.data = self.pid_to_motors(self.pid_output)
         self.publisher_motor_power.publish(motor_power)
 
-        self.get_logger().info('SP: {0:.6f}\tPV: {1:.6f}\tPID: {2:.6f}\tMotor: {3}'.format(
-            self.velocity_setpoint, self.velocity_mean, self.pid_output_mean, mpdata
+        self.get_logger().info('\tSP: {0:.6f}\tPV: {1:.6f}\tPID: {2:.6f}\tMotor: {3}'.format(
+            self.velocity_setpoint, self.velocity_mean, self.pid_output, motor_power.data
             )
         )
 
@@ -178,57 +171,42 @@ class PidVelocity(Node):
 
         self.velocity_mean = self.velocity_samples.mean()
 
-        # self.get_logger().info("Distance |Latest={0:.6f}m  |  Prev.={1:.6f}m\tVelocity | Inst.= {2:.6f}m/s  |  Avg.= {3:.6f}m/s".format(self.encoder_count_meters_latest, self.encoder_count_meters_previous, instantaneous_velocity, self.velocity_mean))
-
 
     def pid_step(self):
+        """
+        Single time-step of the PID algorithm.
+        Errors are stored in a circular buffer after calculating current-time-step PID components.
+        """
+        # TODO Credit https://maldus512.medium.com/pid-control-explained-45b671f10bc7
 
         error = self.velocity_setpoint - self.velocity_mean
 
-        # Proportional component
-        # Later computed as Kp * error
+        error_integral = self.pid_error_samples.sum() + (error * self.dt)
+        error_integral = clamp(error_integral, -self.pid_integral_windup_limit, self.pid_integral_windup_limit)
 
-        # Integral component
-        # Clamped to prevent wind-up
-        self.error_integral = clamp(
-            (self.error_integral + (error * self.dt)),
-            -self.pid_integral_windup_limit,            # Note: negative sign
-            self.pid_integral_windup_limit
-            )
+        error_derivative = (error - self.pid_error_samples.peek_latest()) / self.dt
 
-        # Derivative component
-        error_derivative = (error - self.error_last) / self.dt
-        self.error_last = error
+        self.pid_error_samples.shift(error)
 
         # Raw PID computation
-        pid_output = (self.pid_kp * error) \
-                    + (self.pid_ki * self.error_integral) \
+        self.pid_output = (self.pid_kp * error) \
+                    + (self.pid_ki * error_integral) \
                     + (self.pid_kd * error_derivative)
 
         # PID Output clamped within bounds of maximum possible velocity
-        pid_output = clamp(pid_output, -self.pid_output_limit, self.pid_output_limit)
-
-        self.pid_output_samples.shift(value=pid_output)
-
-        self.pid_output_mean = self.pid_output_samples.mean()
-
+        self.pid_output = clamp(self.pid_output, -self.pid_output_limit, self.pid_output_limit)
+        if self.pid_output < 0.0001:
+            self.pid_output = 0.0
 
     def pid_to_motors(self, pid_output=0.0):
         """
         Translates the PID output into a useful motor value.
         """
-        motor_power = 0
-
         # Convert PID output into an equivalent motor power value
-        pid_motor_power = pid_output / self.motor_velocity_power_factor
+        motor_power = self.motor_power_latest + min(int(pid_output // self.motor_velocity_power_factor), self.motor_power_maximum_step)
 
         # Power given to motors is clamped to the parameterized maximum step size.
-        if pid_motor_power < 0:
-            motor_power = int(self.motor_power_latest + max(-self.motor_power_maximum_step, pid_motor_power))
-        else:
-            motor_power = int(self.motor_power_latest + min(self.motor_power_maximum_step, pid_motor_power))
-
-        # self.get_logger().info('~~ PID Motor Power = {}'.format(motor_power))
+        motor_power = clamp(motor_power, 0, self.motor_power_maximum)
 
         return motor_power
 
@@ -259,6 +237,10 @@ class SimpleCircularBuffer():
     def mean(self):
 
         return self._buffer.mean()
+
+    def sum(self):
+
+        return self._buffer.sum()
 
     def zero_clear(self):
         """
