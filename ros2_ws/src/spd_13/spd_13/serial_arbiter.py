@@ -110,6 +110,29 @@ class SerialArbiter(Node):
     
     def publish_all_callback(self):
 
+        # Poll data from serial, store responses.
+        self.serial_rx_qa =  self.serial_send(SerialCommands.query_accelerometer)
+        self.serial_rx_qg =  self.serial_send(SerialCommands.query_gyroscope)
+        self.serial_rx_qe =  self.serial_send(SerialCommands.query_encoders)
+        self.serial_rx_qm =  self.serial_send(SerialCommands.query_motors)
+
+        # Update motor speeds if requested by subscriptions.
+        try:
+            if self.update_motor_power_right:
+                self.update_motor_power_right = False
+                self.serial_send("sm1 %d" % self.requested_motor_power_right)
+        except:
+            self.get_logger().warning("Failed to update Motor 1 power.")
+            pass
+        
+        try:
+            if self.update_motor_power_left:
+                self.update_motor_power_left = False
+                self.serial_send("sm2 %d" % self.requested_motor_power_left)
+        except:
+            self.get_logger().warning("Failed to update Motor 2 power.")
+            pass
+
         # Accelerometer
         try:
             accel_msg = String()
@@ -216,23 +239,6 @@ def main(args=None):
         while rclpy.ok():
             # Process callbacks/etc.
             rclpy.spin_once(arbiter, timeout_sec=0.01)  # Timeout req. to decouple loop from publish freq., nonzero to help subs.
-
-            # Poll data from serial, store responses.
-            arbiter.serial_rx_qa =  arbiter.serial_send(SerialCommands.query_accelerometer)
-            arbiter.serial_rx_qg =  arbiter.serial_send(SerialCommands.query_gyroscope)
-            arbiter.serial_rx_qe =  arbiter.serial_send(SerialCommands.query_encoders)
-            arbiter.serial_rx_qm =  arbiter.serial_send(SerialCommands.query_motors)
-
-            # Update motor speeds if requested by subscriptions.
-            if arbiter.update_motor_power_right:
-                arbiter.update_motor_power_right = False
-                arbiter.serial_send("sm1 %d" % arbiter.requested_motor_power_right)
-
-            if arbiter.update_motor_power_left:
-                arbiter.update_motor_power_left = False
-                arbiter.serial_send("sm2 %d" % arbiter.requested_motor_power_left)
-
-        
 
     except Exception as e:
         arbiter.get_logger().error(e)
