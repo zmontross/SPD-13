@@ -56,28 +56,8 @@ class SerialArbiter(Node):
         self.get_logger().info('Motor publish period (sec): {}'.format(self.motor_publish_period))
 
 
-
-        # Variables for storing latest responses from serial.
-
-        self.serial_guard = self.create_guard_condition(self.serial_guard_cb)
-        self.serial_guard_flag = False
-
         self.arduino = SerialComms(self.serial_port_path, self.serial_baud_rate)
         self.arduino.reset_encoders()
-
-        self.accelerometer_latest = ['', '', '']
-        self.gyroscope_latest = ['', '', '']
-        # self.encoders_latest = ['', '']
-        # self.motors_latest = ['', '']
-        
-
-        # Flags and data set by subscriptions.
-        # Set Motor Power
-        self.update_motor_power_right = False
-        self.update_motor_power_left = False
-        self.requested_motor_power_right = 0
-        self.requested_motor_power_left = 0
-
 
         # Setup publishers, subscribers
         self.accelerometer_pub = self.create_publisher(Vector3, 'accelerometer', 10)
@@ -188,10 +168,9 @@ class SerialComms():
     MAX_BYTES = 20
     TERMINATOR = '\r'
 
-    def __init__(self, serial_port_path, serial_baud_rate, logger=None):
+    def __init__(self, serial_port_path, serial_baud_rate):
 
         self.serial_port = serial.Serial(serial_port_path, serial_baud_rate, timeout=None)
-        self.logger = logger
 
     def serial_send(self, tx):
         # Clear buffers
