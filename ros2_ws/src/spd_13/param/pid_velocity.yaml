@@ -14,8 +14,8 @@ pid_velocity_right:
     ki: 0.016
     kd: 0.009875
     pid_frequency_hz: 8
-    pid_integral_windup_limit: 0.85
-    pid_output_limit: 0.85
+    pid_integral_windup_limit: 0.085
+    pid_output_limit: 0.085
     motor_velocity_power_factor: 0.000245
 
 pid_velocity_left:

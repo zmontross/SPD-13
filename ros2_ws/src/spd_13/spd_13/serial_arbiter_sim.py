@@ -76,6 +76,10 @@ def main(args=None):
     try:
         rclpy.spin(sas)
 
+    except KeyboardInterrupt:
+        sas.get_logger().info("Keyboard Interrupt")
+        pass
+        
     except:
         pass
 

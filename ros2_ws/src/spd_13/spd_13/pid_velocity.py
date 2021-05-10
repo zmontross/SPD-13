@@ -195,7 +195,7 @@ class PidVelocity(Node):
 
         # PID Output clamped within bounds of maximum possible velocity
         self.pid_output = clamp(self.pid_output, -self.pid_output_limit, self.pid_output_limit)
-        if self.pid_output < 0.0001:
+        if abs(self.pid_output) < 0.0001:
             self.pid_output = 0.0
 
     def pid_to_motors(self, pid_output=0.0):
@@ -282,7 +282,11 @@ def main(args=None):
         while rclpy.ok():
             rclpy.spin_once(pid_velocity, timeout_sec=0.01)
             # do things
-        
+
+    except KeyboardInterrupt:
+        pid_velocity.get_logger().info("Keyboard Interrupt")
+        pass
+
     except Exception as e:
         print(e)
         pass

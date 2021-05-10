@@ -77,7 +77,11 @@ def main(args=None):
         while rclpy.ok():
             rclpy.spin_once(diff_cmdvel, timeout_sec=0.01)
             # do things
-        
+    
+    except KeyboardInterrupt:
+        diff_cmdvel.get_logger().info("Keyboard Interrupt")
+        pass
+
     except Exception as e:
         print(e)
         pass

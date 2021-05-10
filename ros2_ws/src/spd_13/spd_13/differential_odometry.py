@@ -222,7 +222,10 @@ def main(args=None):
         while rclpy.ok():
             rclpy.spin_once(diff_odom, timeout_sec=0.01)
             # do things
-        
+
+    except KeyboardInterrupt:
+        diff_odom.get_logger().info("Keyboard Interrupt")
+                
     except Exception as e:
         print(e)
         pass
