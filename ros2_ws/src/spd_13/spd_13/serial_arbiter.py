@@ -252,7 +252,7 @@ def main(args=None):
     arbiter = SerialArbiter()
  
     arbiter.arduino.beep(1) # Ready!
-    
+
     try:
         while rclpy.ok():
             # Process callbacks/etc.
