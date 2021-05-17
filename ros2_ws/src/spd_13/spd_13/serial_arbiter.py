@@ -55,7 +55,6 @@ class SerialArbiter(Node):
         self.get_logger().info('Encoder publish period (sec): {}'.format(self.encoder_publish_period))
         self.get_logger().info('Motor publish period (sec): {}'.format(self.motor_publish_period))
 
-
         self.arduino = SerialComms(self.serial_port_path, self.serial_baud_rate)
         self.arduino.reset_encoders()
 
@@ -79,9 +78,6 @@ class SerialArbiter(Node):
 
         self.add_on_set_parameters_callback(self.parameters_callback)
 
-    def serial_guard_cb(self):
-
-        self.serial_guard_flag = True
 
     def publish_accelerometer_cb(self):
         
@@ -165,20 +161,22 @@ class SerialArbiter(Node):
 class SerialComms():    
     RIGHT = 1
     LEFT = 2
-    MAX_BYTES = 20
+    MAX_BYTES = 30
     TERMINATOR = '\r'
 
     def __init__(self, serial_port_path, serial_baud_rate):
 
-        self.serial_port = serial.Serial(serial_port_path, serial_baud_rate, timeout=None)
+        self.serial_port = serial.Serial(serial_port_path, serial_baud_rate, timeout=0.01, write_timeout=0.01)
 
     def serial_send(self, tx):
+
         # Clear buffers
         self.serial_port.reset_input_buffer()
         self.serial_port.reset_output_buffer()
 
         # Write given input as raw bytes; Arduino code is expected to handle any possible input.
         self.serial_port.write(bytes(tx + self.TERMINATOR, 'utf-8'))
+        self.serial_port.flush()
         
         # Grab raw bytes up to the pre-agreed terminator.
         rx = self.serial_port.read_until(bytes(self.TERMINATOR, 'utf-8'), self.MAX_BYTES)
@@ -186,8 +184,8 @@ class SerialComms():
         # Convert bytes to string, remove expected terminator.
         rx = rx.decode('utf-8').strip(self.TERMINATOR)
 
-        return rx    
-    
+        return rx
+
     def query_accelerometer(self):
         _, ax, ay, az = self.serial_send('qa').split(':')
         return float(ax), float(ay), float(az)

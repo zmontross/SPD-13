@@ -153,7 +153,7 @@ class PidVelocity(Node):
         motor_power.data = self.pid_to_motors(self.pid_output)
         self.publisher_motor_power.publish(motor_power)
 
-        self.get_logger().info('\tSP: {0:.6f}\tPV: {1:.6f}\tPID: {2:.6f}\tMotor: {3}'.format(
+        self.get_logger().debug('\tSP: {0:.6f}\tPV: {1:.6f}\tPID: {2:.6f}\tMotor: {3}'.format(
             self.velocity_setpoint, self.velocity_mean, self.pid_output, motor_power.data
             )
         )

@@ -59,7 +59,7 @@ class DifferentialCmdVel(Node):
         self.publisher_velocity_right.publish(target_velocity_right)
         self.publisher_velocity_left.publish(target_velocity_left)
 
-        self.get_logger().info('/cmd_vel [Twist], linear.x={0}\tangular.z={1} --> R={2}\tL={3}'.format(
+        self.get_logger().debug('/cmd_vel [Twist], linear.x={0}\tangular.z={1} --> R={2}\tL={3}'.format(
             message.linear.x, message.angular.z, target_velocity_right.data, target_velocity_left.data
         ))
 

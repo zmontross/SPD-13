@@ -2,7 +2,7 @@ serial_arbiter:
   ros__parameters:
     serial_port_path: '/dev/ttyACM0'
     serial_baud_rate': 115200
-    accelerometer_publish_period: 0.25
-    gyroscope_publish_period: 0.25
-    encoder_publish_period: 0.05
-    motor_publish_period: 0.05
+    accelerometer_publish_period: 0.30
+    gyroscope_publish_period: 0.30
+    encoder_publish_period: 0.15
+    motor_publish_period: 0.15
