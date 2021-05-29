@@ -317,19 +317,19 @@ void handleSerial(){
     else if(request[0] == 'b'){   // Beeps
       switch(request[1]){
         case '1':
-          buzzer.playFrequency(440, 200, 15);
+          buzzer.playFrequency(440, 100, 15);
           Serial.println(0);
           break;
         case '2':
-          buzzer.playFrequency(494, 200, 15);
+          buzzer.playFrequency(494, 100, 15);
           Serial.println(0);
           break;
         case '3':
-          buzzer.playFrequency(523, 200, 15);
+          buzzer.playFrequency(523, 100, 15);
           Serial.println(0);
           break;
         case '4':
-          buzzer.playFrequency(587, 200, 15);
+          buzzer.playFrequency(587, 100, 15);
           Serial.println(0);
           break;
         default:
