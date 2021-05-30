@@ -4,6 +4,7 @@
 
 ## TODO Credit https://www.cs.columbia.edu/~allen/F17/NOTES/icckinematics.pdf
 
+## TODO Credit http://danceswithcode.net/engineeringnotes/quaternions/quaternions.html
 
 from math import sin, cos, pi
 
@@ -22,8 +23,6 @@ from geometry_msgs.msg import Point
 from geometry_msgs.msg import Pose
 from geometry_msgs.msg import TransformStamped
 from tf2_ros import TransformBroadcaster
-
-
 
 
 class DifferentialOdometry(Node):
@@ -183,9 +182,7 @@ class DifferentialOdometry(Node):
         distance_average = (distance_left + distance_right) / 2   # Calculation dependent only on latest two encoder counts
         theta = (distance_right - distance_left) / self.wheel_separation_meters # "this approximation works (in radians) for small angles" TODO double-check this estimation
 
-        if theta != 0:
-            self.position_theta = self.position_theta + theta
-
+        
         if distance_average != 0:
             # Calculate distance traveled in X and Y
             distance_x = distance_average * cos(theta)
@@ -194,6 +191,9 @@ class DifferentialOdometry(Node):
             # Calculate final position of robot
             self.position_x = self.position_x + (distance_x * cos(self.position_theta)) + (distance_y * -sin(self.position_theta))  # Note the negative Sin()
             self.position_y = self.position_y + (distance_y * sin(self.position_theta)) + (distance_y * cos(self.position_theta))
+        
+        if theta != 0:
+            self.position_theta = self.position_theta + theta
 
         if dt.nanoseconds == 0: # Purely for initial-conditions / reset protection
             self.velocity_linear = 0.0
