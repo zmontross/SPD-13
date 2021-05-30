@@ -71,12 +71,14 @@ class SerialArbiter(Node):
         self.subscriber_motor_right = self.create_subscription(Int16, 'set_motor_power_right', self.subscribed_motor_right_cb, 10)
         self.subscriber_motors_left = self.create_subscription(Int16, 'set_motor_power_left', self.subscribed_motor_left_cb, 10)
 
+        self.subscriber_beep = self.create_subscription(Int16, 'beep', self.beep_cb, 10)
+
         self.timer_publish_accelerometer = self.create_timer(self.accelerometer_publish_period, self.publish_accelerometer_cb)
         self.timer_publish_gyroscope = self.create_timer(self.gyroscope_publish_period, self.publish_gyroscope_cb)
         self.timer_publish_encoders = self.create_timer(self.encoder_publish_period, self.publish_encoders_cb)
         self.timer_publish_motors = self.create_timer(self.motor_publish_period, self.publish_motors_cb)
 
-        self.add_on_set_parameters_callback(self.parameters_callback)
+        self.add_on_set_parameters_callback(self.parameters_cb)
 
 
     def publish_accelerometer_cb(self):
@@ -147,7 +149,15 @@ class SerialArbiter(Node):
             self.get_logger().error("Failed to update Motor 2 power: '{}'".format(e))
             pass
 
-    def parameters_callback(self, params):
+    def beep_cb(self, message):
+
+        try:
+            self.arduino.beep(int(message.data))
+        except Exception as e:
+            self.get_logger().error("Failed to beep.".format(e))
+            pass
+
+    def parameters_cb(self, params):
         # Reference, https://roboticsbackend.com/ros2-rclpy-parameter-callback/
         success = False
         for param in params:
@@ -221,6 +231,9 @@ class SerialComms():
 
     def set_motor_power(self, motor, power):
         rx = self.serial_send('sm{} {}'.format(motor, power))
+
+    def beep(self, beep_num):
+        rx = self.serial_send('b{}'.format(beep_num))
 
 def main(args=None):
 
