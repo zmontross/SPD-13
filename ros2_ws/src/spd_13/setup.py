@@ -28,8 +28,7 @@ setup(
             'serial_arbiter_sim = spd_13.serial_arbiter_sim:main',
             'differential_odometry = spd_13.differential_odometry:main',
             'differential_cmd_vel = spd_13.differential_cmd_vel:main',
-            'pid_velocity = spd_13.pid_velocity:main',
-            'laser_beep = spd_13.laser_beep:main'
+            'pid_velocity = spd_13.pid_velocity:main'
         ],
     },
 )
