@@ -20,7 +20,7 @@ from nav_msgs.msg import Odometry
 from sensor_msgs.msg import JointState
 from geometry_msgs.msg import Quaternion
 from geometry_msgs.msg import Point
-from geometry_msgs.msg import Pose
+from geometry_msgs.msg import Pose, PoseWithCovariance
 from geometry_msgs.msg import TransformStamped
 from tf2_ros import TransformBroadcaster
 
@@ -34,7 +34,7 @@ class DifferentialOdometry(Node):
         # TODO Relocate robot physical characteristics to an URDF file
 
         # Declare Parameters
-        self.declare_node_parameters()
+        self.declare_local_parameters()
 
         # Retrieve/store initial param values
         self.encoder_count_minimum = self.get_parameter('encoder_count_minimum').value
@@ -90,56 +90,56 @@ class DifferentialOdometry(Node):
         self.get_logger().info('Differential Odometry node initialized!')
 
 
-    def declare_all_parameters(self):
+    def declare_local_parameters(self):
         """
         Declare all of the parameters for this node. Default parameter values are set here.
         """
 
         self.declare_parameter(
+            # Absolute minimum encoder value (default is signed-int32 minimum).
             name = 'encoder_count_minimum',
-            descriptor = 'Absolute minimum encoder value (default is signed-int32 minimum).',
             value = -2147483648
         )
 
         self.declare_parameter(
+            # Absolute maximum encoder value (default is signed-int32 maximum).
             name = 'encoder_count_maximum',
-            descriptor = 'Absolute maximum encoder value (default is signed-int32 maximum).',
             value = 2147483647
         )
 
         self.declare_parameter(
+            # Number of encoder counts per motor shaft revolution. Default is provided by Pololu DC motor 4825: https://www.pololu.com/product/4825
             name = 'encoder_counts_per_rev',
-            descriptor = 'Number of encoder counts per motor shaft revolution. Default is provided by Pololu DC motor 4825: https://www.pololu.com/product/4825',
             value = 2248.86
         )
 
         self.declare_parameter(
+            # Diameter, in meters, of the wheel attached to the drive motor. Default measured via calipers: https://www.dfrobot.com/product-1477.html
             name = 'wheel_diameter_meters',
-            descriptor = 'Diameter, in meters, of the wheel attached to the drive motor. Default measured via calipers: https://www.dfrobot.com/product-1477.html',
             value = 0.04186
         )
 
         self.declare_parameter(
+            # Distance, in meters, between between differential wheel centers. Default measured via CAD: https://grabcad.com/library/dfrobot-devastator-1
             name = 'wheel_separation_meters',
-            descriptor = 'Distance, in meters, between between differential wheel centers. Default measured via CAD: https://grabcad.com/library/dfrobot-devastator-1',
             value = 0.1875
         )
 
         self.declare_parameter(
+            # Name of the robot TF base_frame/base_link/etcetera. Used for TF2 and Odometry messages.
             name = 'base_frame_id',
-            descriptor = 'Name of the robot TF base_frame/base_link/etcetera. Used for TF2 and Odometry messages.',
             value = 'base_frame'
         )
 
         self.declare_parameter(
+            # Name of the robot TF odometry. Used for TF2 and Odometry messages.
             name = 'odom_frame_id',
-            descriptor = 'Name of the robot TF odometry. Used for TF2 and Odometry messages.',
             value = 'odom'
         )
 
         self.declare_parameter(
+            # Period, in seconds, between TF / Odometry message publishes.
             name = 'publish_period_sec',
-            descriptor = 'Period, in seconds, between TF / Odometry message publishes.',
             value = 0.01
         )
 
@@ -226,15 +226,22 @@ class DifferentialOdometry(Node):
             orientation = quaternion
         )
 
+        pose_cov = PoseWithCovariance(
+            pose = pose
+        )
+
         transform = TransformStamped()
         transform.header = header
         transform.child_frame_id = self.base_frame_id
-        transform.transform = pose
+        transform.transform.translation.x = point.x
+        transform.transform.translation.y = point.y
+        transform.transform.translation.z = point.z
+        transform.transform.rotation = quaternion
 
         odom = Odometry()
         odom.header = header
         odom.child_frame_id = self.base_frame_id
-        odom.pose = pose
+        odom.pose = pose_cov
         odom.twist.twist.linear.x = self.velocity_linear
         odom.twist.twist.linear.y = 0.0
         odom.twist.twist.angular.z = self.velocity_angular

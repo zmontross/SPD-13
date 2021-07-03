@@ -2,6 +2,8 @@
 
 ## TODO Credit https://github.com/jfstepha/differential-drive/blob/master/scripts/py
 
+## TODO Credit https://projects.raspberrypi.org/en/projects/robotPID/4
+
 
 from numpy import array
 
@@ -10,6 +12,7 @@ from math import pi
 import rclpy
 
 from rclpy.node import Node
+from rclpy.constants import S_TO_NS
 
 from std_msgs.msg import Int16, Int32, Float32
 
@@ -56,9 +59,9 @@ class PidVelocity(Node):
         self.declare_parameter('velocity_threshold', 0.001)
         self.declare_parameter('num_velocity_samples', 5)
 
-        self.declare_parameter('kp', 2)
-        self.declare_parameter('ki', 1)
-        self.declare_parameter('kd', 0)
+        self.declare_parameter('kp', 2.0)
+        self.declare_parameter('ki', 1.0)
+        self.declare_parameter('kd', 0.0)
         self.declare_parameter('pid_frequency_hz', 5)
         self.declare_parameter('pid_integral_windup_limit', 0.025)
         self.declare_parameter('pid_output_limit', 0.1)
@@ -128,7 +131,7 @@ class PidVelocity(Node):
         self.time_current = self.get_clock().now()
         self.encoder_count_meters_latest = message.data / self.encoder_counts_per_meter
 
-        self.dt = (self.time_current.nanoseconds - self.time_previous.nanoseconds) / 1000000000.0 # nanosec to sec = 1e-9
+        self.dt = (self.time_current.nanoseconds - self.time_previous.nanoseconds) / S_TO_NS
 
     def motor_power_callback(self, message):
 

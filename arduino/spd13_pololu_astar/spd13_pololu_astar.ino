@@ -76,8 +76,8 @@
 
 #define ENC_RESET_SUCCESS 0
 
-#define FLIP_STATE_M1 true
-#define FLIP_STATE_M2 true
+#define FLIP_STATE_M1 false
+#define FLIP_STATE_M2 false
 
 /***** ***** ***** ***** ***** ***** ***** *****
  *  LSM6 IMU Defines
