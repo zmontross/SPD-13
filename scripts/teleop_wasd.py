@@ -33,7 +33,7 @@ ANGULAR_MAX = 2.00
 ANGULAR_STEP = 0.2
 ANGULAR_DRAG_STEP = 0.1
 
-global_scan_data_array = []
+global_scan_data_array = [12.00] * 360 # The array is already known to have a max of 360 elements.
 
 
 def clamp(x, low=0, high=100):
@@ -100,6 +100,8 @@ class ScanLine():
 
 class TeleopWasd(Node):
 
+    last_ranges = [12.00] * 360 # The array is already known to have a max of 360 elements.
+
     def __init__(self):
 
         super().__init__('teleop_wasd')
@@ -112,7 +114,10 @@ class TeleopWasd(Node):
 
     def scan_cb(self, message):
 
-        global_scan_data_array.copy(message.ranges)
+        for i in range(0, 360):
+            # Grab datapoint
+            global_scan_data_array[i] = message.ranges[i]
+        
 
 def main():
 
@@ -139,7 +144,8 @@ def main():
     FramePerSec = pygame.time.Clock()
 
     pygame_fill_white = (255, 255, 255)
-    pygame_fill_gray = (128, 128, 128)
+    pygame_fill_gray = (96, 96, 96)
+    pygame_fill_black = (0, 0, 0)
 
     pygame_window = pygame.display.set_mode((pygame_width, pygame_height))
 
@@ -149,8 +155,13 @@ def main():
     ## TODO What if the pips grew in size as the distance became closer?
     ## TODO Pips both grow in size, and transition to red, as distances draw near. shrink and go blue with distance.
 
-    sl = ScanLine(width=1025, height=300, posx=pygame_width//2, posy=pygame_height//2, numpips=109)
-    
+    sl = ScanLine(
+        width=1025,
+        height=300,
+        posx=pygame_width//2,
+        posy=pygame_height//2,
+        numpips=109
+        )
 
     try:
         while(1):
@@ -163,7 +174,7 @@ def main():
                     pygame.quit()
                     sys.exit()
 
-            pygame_window.fill(pygame_fill_gray)
+            pygame_window.fill(pygame_fill_black)
 
             linear_drag = True
             angular_drag = True
@@ -252,32 +263,48 @@ def main():
             vtext_pos = pygame_velocity_text.get_rect(centerx=vposx/2, centery=vposy/2)
             pygame_window.blit(pygame_velocity_text, vtext_pos)
 
+
+
             # 109 scan ranges, centered on number 55, or 54 if index-base-zero
 
-            # for i in range(-16, -1):
-            #     sl.pips[54 + i].update(
-            #     height=( global_scan_data_array[i]*210 ),
-            #     color=(192, 64, 64))
+            range_height_scale_const = 200
+            range_color_scale_const = 60
+
+            for n in range(0, 54):
+                range_val = global_scan_data_array[306+n]
+                range_val_scaled = clamp( range_val * range_height_scale_const, 64, pygame_height)
+                height_val = pygame_height - range_val_scaled
+                color_val = (clamp(255 - range_val * range_color_scale_const, 0, 255), 0, 0)
+
+                sl.pips[n].update(
+                    height=height_val,
+                    color=color_val
+                )
+
+            range_val = global_scan_data_array[0]
+            range_val_scaled = clamp( range_val * range_height_scale_const, 64, pygame_height)
+            height_val = pygame_height - range_val_scaled
+            color_val = (clamp(255 - range_val * range_color_scale_const, 0, 255), 0, 0)
 
             sl.pips[54].update(
-                height=( global_scan_data_array.ranges[0]*210 ),
-                color=(192, 64, 64))
+                height=height_val,
+                color=color_val
+            )
 
-            # for i in range(1, 16):
-            #     sl.pips[54 + i].update(
-            #     height=( global_scan_data_array[i]*210 ),
-            #     color=(192, 64, 64))
+            for n in range(55, 109):
+                range_val = global_scan_data_array[n-54]                
+                range_val_scaled = clamp( range_val * range_height_scale_const, 64, pygame_height)
+                height_val = pygame_height - range_val_scaled
+                color_val = (clamp(255 - range_val * range_color_scale_const, 0, 255), 0, 0)
 
-
-
-
-
-            if target_linear_velocity > 0.05:
-                sl.pips[5].update(height=400, color=(192,64,64))
-            else:
-                sl.pips[5].update(height=300, color=(64,192,64))
+                sl.pips[n].update(
+                    height=height_val,
+                    color=color_val
+                )
 
 
+
+            pygame.Surface.lock(pygame_window)
             for pip in sl.pips:
 
                 pygame.draw.rect(
@@ -290,6 +317,8 @@ def main():
                         pip.height
                         )
                     )
+            pygame.Surface.unlock(pygame_window)
+
 
             pygame.display.update()
 
@@ -303,9 +332,6 @@ def main():
 
             FramePerSec.tick(pygame_fps)
 
-            
-
-            
 
     except Exception as e:
 
