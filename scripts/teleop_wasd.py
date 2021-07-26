@@ -1,15 +1,22 @@
 #!/usr/bin/env python3
 
-# Hold wasd
-# Accelerate at some fixed rate.
-# When key released decelerate back to zero.
-# If opposing keys held, e.g. w/d or a/s, then they should cancel-out
-# Need a loop that checks for keys held, but transmits new msgs at fixed period (100ms?)
-# Accel rate for ctrl, separate decel rate for no-input slowing. accel > decel.
-
-# TODO Maybe change velocities based on gap from min/max? e.g. v = v + (max-v)/2
+#TODO BUG cmd_vel msg OK, but prints of lin/ang V to screen breach min/max limits briefly before clamping.
+#TODO Slider (ideal) or selection buttons for FOV
+#TODO Selection buttons for Resolution
+#TODO On-screen explanation of WASD controls, labels for FOV/Res. selections
+#TODO Info about scans (header data, time since last rx)
+#TODO Hold Shift to for manual-step mode; don't auto-decrement velocities to zero
+#TODO Mouse-hover over ScanPip to see range
+#TODO Average the ranges, filter outliers (e.g. range==0 ? use_prev_range : use_new_range)
+#TODO Auto-save selections to a file
+#TODO Offload classes and helper functions to other python modules, import them here.
 
 import sys
+
+import pygame
+from pygame import color
+from pygame.locals import *
+
 
 import rclpy
 from rclpy.node import Node
@@ -17,11 +24,6 @@ from rclpy.constants import S_TO_NS
 from rclpy.qos import QoSProfile
 from geometry_msgs.msg import Twist, Vector3
 from sensor_msgs.msg import LaserScan
-
-
-import pygame
-from pygame import color
-from pygame.locals import *
 
 LINEAR_MIN = -0.09
 LINEAR_MAX = 0.09
@@ -84,8 +86,8 @@ class ScanLine():
         self.posx = posx
         self.posy = posy
         
-        self.range_height_scale_const = 200
-        self.range_color_scale_const = 60
+        self._range_height_scale_const = 200
+        self._range_color_scale_const = 60
         
         self.pip_width = self.width / numpips
 
@@ -125,14 +127,14 @@ class ScanLine():
             else:
                 range_val = ranges[359 - (n-54)]
 
-            range_val_scaled = clamp( range_val * self.range_height_scale_const, 64, self.height)
+            range_val_scaled = clamp( range_val * self._range_height_scale_const, 64, self.height)
             height_val = self.height - range_val_scaled
-            color_val = (clamp(255 - range_val * self.range_color_scale_const, 0, 255), 0, 0)
+            color_val = (clamp(255 - range_val * self._range_color_scale_const, 0, 255), 0, 0)
 
 
             self.pips_far[n].update(
                 height=self.pips_near[n].height,
-                color=(0, 0, clamp(255 - range_val * self.range_color_scale_const, 0, 255))
+                color=(0, 0, clamp(255 - range_val * self._range_color_scale_const, 0, 255))
             )
 
             self.pips_near[n].update(
@@ -262,10 +264,10 @@ def main():
     teleop_wasd = TeleopWasd()
 
     pygame.init()
-    pygame_width = 1024
-    pygame_height = 768
-    # pygame_width = 1920
-    # pygame_height = 1080
+    # pygame_width = 1024
+    # pygame_height = 768
+    pygame_width = 1920
+    pygame_height = 1080
     pygame_fps = 60
 
     pygame_fill_white = (255, 255, 255)
