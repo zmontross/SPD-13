@@ -51,10 +51,10 @@ class DifferentialCmdVel(Node):
         target_velocity_right = Float32()
         target_velocity_left = Float32()
 
-        rotation_factor = message.angular.z * self.wheel_separation_meters / 2
+        tangential_linear_velocity = message.angular.z * self.wheel_separation_meters / 2
 
-        target_velocity_right.data = message.linear.x + rotation_factor
-        target_velocity_left.data = message.linear.x - rotation_factor
+        target_velocity_right.data = message.linear.x + tangential_linear_velocity
+        target_velocity_left.data = message.linear.x - tangential_linear_velocity
 
         self.publisher_velocity_right.publish(target_velocity_right)
         self.publisher_velocity_left.publish(target_velocity_left)

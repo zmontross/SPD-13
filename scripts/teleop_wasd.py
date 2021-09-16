@@ -25,15 +25,15 @@ from rclpy.qos import QoSProfile
 from geometry_msgs.msg import Twist, Vector3
 from sensor_msgs.msg import LaserScan
 
-LINEAR_MIN = -0.09
 LINEAR_MAX = 0.09
-LINEAR_STEP = 0.01
-LINEAR_DRAG_STEP = 0.0075
+LINEAR_MIN = -LINEAR_MAX
+LINEAR_STEP = 0.05
+LINEAR_DRAG_STEP = 0.06
 
-ANGULAR_MIN = -2.00
-ANGULAR_MAX = 2.00
-ANGULAR_STEP = 0.2
-ANGULAR_DRAG_STEP = 0.1
+ANGULAR_MAX = 1.00
+ANGULAR_MIN = -ANGULAR_MAX
+ANGULAR_STEP = 0.25
+ANGULAR_DRAG_STEP = 0.625
 
 
 
@@ -88,11 +88,11 @@ class ScanLine():
         
         self._range_height_scale_const = 200
         self._range_color_scale_const = 60
+        self._range_color_offset = 32
         
         self.pip_width = self.width / numpips
 
         self.pips_near = []
-
         for p in range(numpips):
             pip = ScanPip(
                 width = self.pip_width,
@@ -129,12 +129,13 @@ class ScanLine():
 
             range_val_scaled = clamp( range_val * self._range_height_scale_const, 64, self.height)
             height_val = self.height - range_val_scaled
-            color_val = (clamp(255 - range_val * self._range_color_scale_const, 0, 255), 0, 0)
+            red_val = clamp(255 - range_val * self._range_color_scale_const + self._range_color_offset, 0, 255)
+            color_val = (red_val, 0, 0)
 
 
             self.pips_far[n].update(
                 height=self.pips_near[n].height,
-                color=(0, 0, clamp(255 - range_val * self._range_color_scale_const, 0, 255))
+                color=(0, 0, color_val)
             )
 
             self.pips_near[n].update(
